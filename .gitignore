@@ -1,0 +1,19 @@
+# ------------------------
+# Python
+# ------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+*.sqlite3
+db.sqlite3
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+Thumbs.db
