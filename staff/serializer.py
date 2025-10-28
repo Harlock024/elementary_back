@@ -2,8 +2,15 @@ from rest_framework import serializers
 
 from .models import Staff
 
+
+
 class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
-        fields = ['id', 'username', 'first_name', 'last_name', 'role', 'created_at', 'updated_at']  
+        fields = ['id', 'username', 'first_name', 'last_name',"password_professor", 'role', 'created_at', 'updated_at']  
+
+
+# TODO:
+#  crear profesor serializer sin retorno de password_professor / solo login 
+
 

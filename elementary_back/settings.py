@@ -43,6 +43,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'staff',
+    'academics',
+    'attendance',
+    'grades',
+    'students',
 ]
 
 REST_FRAMEWORK = {
@@ -55,7 +59,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-        'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+        'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
         'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
         'ROTATE_REFRESH_TOKENS': False,
         }

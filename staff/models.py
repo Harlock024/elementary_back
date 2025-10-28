@@ -12,23 +12,21 @@ class Staff(AbstractUser):
         ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='profesor')
+    password_professor = models.CharField(max_length=128, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
- 
+
     class Meta:
         db_table = "staff"
 
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"
 
-    def is_directora(self):
-        return self.role == 'directora'
-
     def is_admin(self):
-        return self.role == 'admin'
+        return self.role == 'Admin'
 
-    def is_profesor(self):
-        return self.role == 'profesor'
+    def is_teacher(self):
+        return self.role == 'Teacher'
 
 
 

@@ -1,12 +1,13 @@
 from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from rest_framework.schemas.coreapi import serializers
 from .models import Staff
 from rest_framework.decorators import api_view, permission_classes
 from .serializer import StaffSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+import random
+import string
 
 class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -28,16 +29,12 @@ class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
-
-
 class StaffLoginView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
-
 
 @api_view(['GET'])
 def index(request):
     return Response("Hello, world. You're at the staff index.")
-
 
 @api_view(['POST'])
 @permission_classes([AllowAny]) 
@@ -69,13 +66,66 @@ def list_professors(request):
 def create_professor(request):
     
     profesor = Staff(
-        username=request.data.get('username'),
         first_name=request.data.get('first_name'),
-        last_name=request.data.get('last_name')
-        )
-    profesor.set_password(request.data.get('password'))
-    profesor.is_profesor()
+        last_name=request.data.get('last_name'),
+        username=request.data.get('first_name').lower() + '_' + request.data.get('last_name').lower(),
+        )  
+
+    # generar password y asignarlo al is_profesor
+    random_password =  generate_random_password()
+
+    # Asignar la contraseña generada al campo password_professor no hasheada solo visible para administradores
+    profesor.password_professor = random_password
+
+    # Asignar la contraseña generada al usuario  y guardarla en el campo password hasheada
+    profesor.set_password(random_password)
+
+
+    profesor.is_teacher()
     profesor.save()
     serializer = StaffSerializer(profesor)
     return Response(serializer.data)
+
+@api_view(['DELETE'])
+def  delete_professor(request, pk):
+    try:
+        professor = Staff.objects.get(pk=pk, role='profesor')
+    except Staff.DoesNotExist:
+        return Response({'error': 'Professor not found.'}, status=404)
+
+    professor.delete()
+    return Response({'message': 'Professor deleted successfully.'})
+
+
+@api_view(['PUT'])
+def update_professor(request, pk):
+    try:
+        professor = Staff.objects.get(pk=pk, role='profesor')
+    except Staff.DoesNotExist:
+        return Response({'error': 'Professor not found.'}, status=404)
+
+    professor.first_name = request.data.get('first_name', professor.first_name)
+    professor.last_name = request.data.get('last_name', professor.last_name)
+    professor.username = request.data.get('username', professor.username)
+    professor.save()
+    serializer = StaffSerializer(professor)
+    return Response(serializer.data)
+
+def generate_random_password(length=10):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    random_password = ''.join(random.choice(characters) for i in range(length))
+    return random_password
+
+@api_view(['POST'])
+def create_admin(request):
+    admin = Staff(
+        first_name=request.data.get("first_name"),
+        last_name=request.data.get("last_name"),
+        username=request.data.get("first_name").lower() + "_admin",
+    )
+    admin.is_admin()
+    admin.set_password(request.data.get("password"))
+    admin.save()
+    return Response({"message": "Admin user created."})
+
 
