@@ -1,8 +1,7 @@
-from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from .models import Staff
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from .serializer import StaffSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -31,28 +30,6 @@ class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class StaffLoginView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
-
-@api_view(['GET'])
-def index(request):
-    return Response("Hello, world. You're at the staff index.")
-
-@api_view(['POST'])
-@permission_classes([AllowAny]) 
-def login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-
-    if not username or not password:
-        return Response({'error': 'Username and password are required.'}, status=400)
-    user = authenticate(username=username, password=password)
-
-    if user is not None:
-        serializer = StaffSerializer(user)
-        return Response({"message": "Login successful", "user": serializer.data})
-    else:
-        return Response({'error': 'Invalid credentials.'}, status=401)
-
 
 
 @api_view(['GET'])

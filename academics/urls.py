@@ -1,7 +1,7 @@
 from django.urls import path
 
 
-from .views import SchoolGradeViewSet, GroupViewSet, SubjectViewSet, EnrollmentViewSet
+from .views import SchoolGradeViewSet, GroupViewSet, SubjectViewSet, EnrollmentViewSet,ClassRoomViewSet
 
 
 urlpatterns = [
@@ -16,9 +16,13 @@ urlpatterns = [
         # Subject endpoints
             path('subjects/', SubjectViewSet.as_view(), name='subject-list'),
             path('subjects/<uuid:pk>/', SubjectViewSet.as_view(), name='subject-detail'),
-        
+
         # Enrollment endpoints
             path('enrollments/', EnrollmentViewSet.as_view(), name='enrollment-list'),
-            path('enrollments/<uuid:pk>/', EnrollmentViewSet.as_view(), name='enrollment-detail')
+            path('enrollments/<uuid:pk>/', EnrollmentViewSet.as_view(), name='enrollment-detail'),
 
+        # ClassRoom endpoints
+            path('classrooms/', ClassRoomViewSet.as_view(), name='classroom-list'),
+            path('classrooms/<uuid:pk>/', ClassRoomViewSet.as_view(), name='classroom-detail')
     ]
+

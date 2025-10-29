@@ -6,9 +6,8 @@ from django.contrib.auth.models import AbstractUser
 class Staff(AbstractUser):
 
     ROLE_CHOICES = [
-            ('directora','directora'),
-            ('admin','admin'),
-            ('profesor','profesor'),
+            ('admin','Admin'),
+            ('teacher','Teacher'),
         ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='profesor')
@@ -21,7 +20,6 @@ class Staff(AbstractUser):
 
     def __str__(self):
         return f"{self.get_full_name()} ({self.get_role_display()})"
-
     def is_admin(self):
         return self.role == 'Admin'
 

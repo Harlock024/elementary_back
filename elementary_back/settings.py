@@ -65,7 +65,6 @@ SIMPLE_JWT = {
         }
 
 
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -74,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'elementary_back.middleware.RoleScopeMiddleware',
 ]
 
 ROOT_URLCONF = 'elementary_back.urls'

@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Enrollment , SchoolGrade, Group, Subject
+from .models import ClassRoom, Enrollment , SchoolGrade, Group, Subject
+from staff.models import Staff
+from academics.models import Group
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -26,6 +28,11 @@ class SubjectSerializer(serializers.ModelSerializer):
         model = Subject
         fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
 
+class ClassRoomSerializer(serializers.ModelSerializer):
+    group = GroupSerializer(read_only=True) 
+    class Meta:
+        model = ClassRoom
+        fields = ['id', 'staff', 'created_at', 'updated_at', 'group']
 
 # Note: Enrollment.group.field.related_model.subjects.field.related_model
 # is used to access the Subject model through the relationships defined in the Enrollment and Group models.

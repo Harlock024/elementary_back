@@ -1,28 +1,33 @@
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, request
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
+from django.utils.deprecation import MiddlewareMixin
+
 
 class IsAdmin(BasePermission):
     """
     Custom permission to only allow admin users to access certain views.
     """
 
-    allowed_roles = ['Admin',"directora"]
+    allowed_roles = ['Admin']
     def has_permission(self, request, view):
         return ( request.user and request.user.is_authenticated and 
                 getattr(request.user, 'role', None) in self.allowed_roles
                 )
 
+class RoleScopeMiddleware(MiddlewareMixin):
+    def process_view(self,request,view_func,view_args,view_kwargs):
+        staff = request.user
 
-class RoleMiddleware:
-    
-    def __init__(self, get_response):
-        self.get_response = get_response
-        self.protected_paths = ['/students/']
+        if not staff.is_authenticated:
+            request.scope = None;
+            return None
 
+        if staff.role == 'Admin':
+            request.scope = 'all';
+        elif staff.role == 'Teacher':
+            request.scope = 'Teacher';
+        else:
+            request.scope = None;
 
-def __call__(self, request):
-        if request.path in self.protected_paths:
-            if not (request.user.is_authenticated and request.user.role in ['admin', 'director']):
-                return Response("No tienes acceso a este recurso.")
-        return self.get_response(request)
+        return None

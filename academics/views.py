@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from elementary_back.middleware import IsAdmin
 
-from .models import Enrollment, SchoolGrade, Group, Subject
-from .serializer import EnrollmentSerializer, SchoolGradeSerializer, GroupSerializer, SubjectSerializer
+from .models import Enrollment, SchoolGrade, Group, Subject,ClassRoom
+from .serializer import EnrollmentSerializer, SchoolGradeSerializer, GroupSerializer, SubjectSerializer,ClassRoomSerializer
 
 class SchoolGradeViewSet(APIView):
     permission_classes = [IsAdmin]
@@ -149,3 +149,50 @@ class EnrollmentViewSet(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+
+ # ClassRoom ViewSet
+class ClassRoomViewSet(APIView):
+
+    def get(self, request, pk=None):
+        staff = self.request.user
+        if pk:
+            try:
+                classroom = ClassRoom.objects.get(pk=pk)
+            except ClassRoom.DoesNotExist:
+                return Response({"error": "ClassRoom not found"}, status=404)
+            serializer = ClassRoomSerializer(classroom)
+            return Response(serializer.data)
+        else:
+            if staff.role == 'Admin':
+                classrooms = ClassRoom.objects.all()
+            elif staff.role == 'Teacher':
+                classrooms = ClassRoom.objects.filter(staff=staff)
+            else:
+                return Response({'detail':'You do not have permission to access this resource.'},status=403)
+
+            serializer = ClassRoomSerializer(classrooms, many=True)
+            return Response(serializer.data)
+
+
+    def post(self, request):
+        serializer = ClassRoomSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def put(self, request, pk):
+        try:
+            classroom = ClassRoom.objects.get(pk=pk)
+        except ClassRoom.DoesNotExist:
+            return Response({"error": "ClassRoom not found"}, status=404)
+
+        serializer = ClassRoomSerializer(classroom, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+
+
