@@ -1,4 +1,5 @@
 from django.db import models
+from academics.models import ClassRoom
 from students.models import Student
 import uuid
 
@@ -28,6 +29,12 @@ class Attendance(models.Model):
         CatalogTypeAtendance,
         on_delete=models.CASCADE,
         related_name='attendances'
+    )
+    class_room = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.CASCADE,
+        related_name='attendances',
+        default=1
     )
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)

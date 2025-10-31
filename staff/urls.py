@@ -5,7 +5,7 @@ from .views import  StaffLoginView
 
 urlpatterns = [
         path("login/", StaffLoginView.as_view(), name="login"),
-        
+       
         # Admin paths (solo directora y admin) contraseña no hasheada visible
         path("professors/", views.list_professors, name="list_professors"),
         path("professors/create/", views.create_professor, name="create_professor"),

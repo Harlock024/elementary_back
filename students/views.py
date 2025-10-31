@@ -23,8 +23,13 @@ class StudentViewSet(APIView):
             serializer = StudentSerializer(students, many=True)
             return Response(serializer.data)
 
+
 # create student with enrollment 
     def post(self, request):
+
+
+        
+
 
         data = Student(
             first_name=request.data.get('first_name'),
@@ -34,6 +39,8 @@ class StudentViewSet(APIView):
             gender=request.data.get('gender'),
             state =request.data.get('state'),
             )
+
+        data.enrollment_number = Student.generate_enrollment_number()
         data.save()
         enrollment = Enrollment(
             student=data,
@@ -67,3 +74,4 @@ class StudentViewSet(APIView):
 
         student.delete()
         return Response(status=204)
+

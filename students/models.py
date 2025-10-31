@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Max
 from academics.models import Group
 import uuid
 
@@ -14,9 +15,20 @@ class Student(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
     class Meta:
         db_table = "students"
         indexes = [
             models.Index(fields=['enrollment_number'], name='idx_enrollment_number'),
         ]
+    @classmethod
+    def generate_enrollment_number(cls):
+        from datetime import datetime
+        prefix = f"E{datetime.now().year}"
+
+        last_code = cls.objects.filter(enrollment_number__startswith=prefix).aggregate(max_code=Max('enrollment_number'))['max_code']
+            
+        last_number = 0
+        if last_code:
+            last_number = int(last_code.replace(prefix,""))
+
+        return f"{prefix}{last_number + 1:05d}"
