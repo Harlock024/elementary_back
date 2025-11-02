@@ -1,7 +1,7 @@
 from django.db import models
 
 from students.models import Student
-from academics.models import ClassRoom
+from academics.models import ClassRoom, Subject
 import uuid
 
 # Create your models here.
@@ -36,6 +36,12 @@ class StudentGrade(models.Model):
         on_delete=models.CASCADE,
         related_name='grades'
     )
+    subject = models.ForeignKey(
+        Subject,
+        on_delete=models.CASCADE,
+        related_name='grades',
+        default=1
+    )
     score = models.DecimalField(max_digits=5, decimal_places=2)
     max_score = models.DecimalField(max_digits=5, decimal_places=2)
     description = models.TextField(blank=True, null=True)
@@ -50,7 +56,6 @@ class StudentGrade(models.Model):
                 name='unique_grade_per_student_classroom_type'
                 ),
         ]
-
         indexes = [
             models.Index(fields=['type_code'], name='idx_type_code'),
                 ]

@@ -29,6 +29,11 @@ class SubjectSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
 
 
+class SubjectNameOnlySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        fields = ['name']
+
 class ClassRoomSerializer(serializers.ModelSerializer):
     group = GroupSerializer(read_only=True) 
     class Meta:

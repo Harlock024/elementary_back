@@ -1,18 +1,23 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import StudentGrade
-from .serializer import StudentGradeSerializer
+from .models import StudentGrade,CatalogTypeGrade
+from .serializer import StudentGradeSerializer, CatalogTypeGradeSerializer
+
 
 class GradeViewSet(APIView):
 
-    def get(self, request, pk=None):
+    def get(self, request, class_room_id=None, pk=None):
         if pk:
             try:
                 grade = StudentGrade.objects.get(pk=pk)
             except StudentGrade.DoesNotExist:
                 return Response({"error": "Grade not found"}, status=404)
             serializer = StudentGradeSerializer(grade)
+            return Response(serializer.data)
+        elif class_room_id:
+            grades = StudentGrade.objects.filter(class_room__id=class_room_id)
+            serializer = StudentGradeSerializer(grades, many=True)
             return Response(serializer.data)
         else:
             grades = StudentGrade.objects.all()
@@ -44,3 +49,44 @@ class GradeViewSet(APIView):
             return Response({"error": "Grade not found"}, status=404)
         grade.delete()
         return Response(status=204)
+
+
+
+class GradeCatalogViewSet(APIView):
+    def get(self, request):
+
+        catalog_types = CatalogTypeGrade.objects.all()
+        serializer = CatalogTypeGradeSerializer(catalog_types, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+
+        serializer = CatalogTypeGradeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def put(self, request, pk):
+
+        try:
+            catalog_type = CatalogTypeGrade.objects.get(pk=pk)
+        except CatalogTypeGrade.DoesNotExist:
+            return Response({"error": "Catalog Type not found"}, status=404)
+        serializer = CatalogTypeGradeSerializer(catalog_type, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        from .models import CatalogTypeGrade
+
+        try:
+            catalog_type = CatalogTypeGrade.objects.get(pk=pk)
+        except CatalogTypeGrade.DoesNotExist:
+            return Response({"error": "Catalog Type not found"}, status=404)
+        catalog_type.delete()
+        return Response(status=204)
+
+
