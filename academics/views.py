@@ -24,12 +24,14 @@ class SchoolGradeViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        serializer = SchoolGradeSerializer(data=request.data)
+        data = SchoolGrade(
+            name=request.data.get('name') 
+            )
+        serializer = SchoolGradeSerializer(data=data.__dict__)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
-
     def put(self, request, pk):
         try:
             school_grade = SchoolGrade.objects.get(pk=pk)
@@ -95,6 +97,7 @@ class SubjectViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
+
         serializer = SubjectSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -180,7 +183,6 @@ class ClassRoomViewSet(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
 
     def put(self, request, pk):
         try:
