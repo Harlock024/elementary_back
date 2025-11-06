@@ -5,7 +5,7 @@ from students.serializer import StudentSerializerNameOnly
 class AttendanceCatalogSerializer(serializers.ModelSerializer):
     class Meta:
         model = CatalogTypeAtendance
-        fields = ['description']
+        fields = ['code','description']
 
 class AttendanceSerializer(serializers.ModelSerializer):
     students =  StudentSerializerNameOnly(read_only=True, source='student')

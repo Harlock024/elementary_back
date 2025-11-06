@@ -6,7 +6,6 @@ from .serializer import AttendanceSerializer
 # Create your views here.
 
 
-
 class AttendaceView(APIView):
     def get(self, request,class_id=None):
         if class_id: 

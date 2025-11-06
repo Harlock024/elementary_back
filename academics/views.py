@@ -1,11 +1,11 @@
-from asyncio import wait
-from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from elementary_back.middleware import IsAdmin
 
+from staff.models import Staff
 from .models import Enrollment, SchoolGrade, Group, Subject,ClassRoom
 from .serializer import EnrollmentSerializer, SchoolGradeSerializer, GroupSerializer, SubjectSerializer,ClassRoomSerializer
+from academics import serializer
 
 class SchoolGradeViewSet(APIView):
     permission_classes = [IsAdmin]
@@ -117,6 +117,7 @@ class SubjectViewSet(APIView):
         return Response(serializer.errors, status=400)
 
 
+
 # en revision, posible conflicto con student viewset al crear matricula
 class EnrollmentViewSet(APIView):
     permission_classes = [IsAdmin]
@@ -179,11 +180,25 @@ class ClassRoomViewSet(APIView):
 
 
     def post(self, request):
-        serializer = ClassRoomSerializer(data=request.data)
+
+
+        group = Group.objects.get(pk=request.data.get('group_id'))
+        staff = Staff.objects.get(pk=request.data.get('staff_id'))
+
+
+
+
+        data = ClassRoom(
+            group=group,
+            staff=staff,
+        )
+        data.save()
+        serializer = classroom = ClassRoomSerializer(data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
-
+        return Response(serializer.errors, status=400)
+        
     def put(self, request, pk):
         try:
             classroom = ClassRoom.objects.get(pk=pk)
@@ -195,6 +210,15 @@ class ClassRoomViewSet(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        try:
+            classroom = ClassRoom.objects.get(pk=pk)
+        except ClassRoom.DoesNotExist:
+            return Response({"error": "ClassRoom not found"}, status=404)
+        classroom.delete()
+        return Response(status=204)
+
 
 
 
