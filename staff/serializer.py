@@ -10,6 +10,11 @@ class StaffSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name',"password_professor", 'role', 'created_at', 'updated_at']  
 
 
+class StaffSerializerNameOnly(serializers.ModelSerializer):
+    class Meta:
+        model = Staff
+        fields = ['id', 'first_name',"username"]
+
 # TODO:
 #  crear profesor serializer sin retorno de password_professor / solo login 
 

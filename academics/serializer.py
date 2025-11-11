@@ -1,7 +1,10 @@
 from rest_framework import serializers
+
+from staff.serializer import StaffSerializerNameOnly
+from students.base_serializer import StudentSerializerNameOnly
 from .models import ClassRoom, Enrollment , SchoolGrade, Group, Subject
-from staff.models import Staff
 from academics.models import Group
+
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -27,12 +30,10 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ['id', 'letter', 'school_grade', 'created_at', 'updated_at']
-
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
-
 
 class SubjectNameOnlySerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,9 +42,28 @@ class SubjectNameOnlySerializer(serializers.ModelSerializer):
 
 class ClassRoomSerializer(serializers.ModelSerializer):
     group = GroupSerializer(read_only=True) 
+    staff = StaffSerializerNameOnly(read_only=True)
+
+
+    students = serializers.SerializerMethodField()
     class Meta:
         model = ClassRoom
-        fields = ['id', 'staff', 'created_at', 'updated_at', 'group']
+        fields = ['id', 'staff','students','group','created_at', 'updated_at']
+
+
+    def get_students(self, obj:ClassRoom)->list:
+        group = obj.group
+
+        if not group: 
+            return []
+
+        enrollments = group.enrollments.all()
+
+        student = [enrollment.student for enrollment in enrollments]
+
+        return StudentSerializerNameOnly(student, many=True).data
+
+
 
 # Note: Enrollment.group.field.related_model.subjects.field.related_model
 # is used to access the Subject model through the relationships defined in the Enrollment and Group models.
