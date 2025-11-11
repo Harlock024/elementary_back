@@ -180,18 +180,13 @@ class ClassRoomViewSet(APIView):
 
 
     def post(self, request):
-
-
         group = Group.objects.get(pk=request.data.get('group_id'))
         staff = Staff.objects.get(pk=request.data.get('staff_id'))
-
-
-
-
         data = ClassRoom(
             group=group,
             staff=staff,
         )
+
         data.save()
         serializer = classroom = ClassRoomSerializer(data)
         if serializer.is_valid():

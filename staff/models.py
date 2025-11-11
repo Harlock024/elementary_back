@@ -10,7 +10,7 @@ class Staff(AbstractUser):
             ('teacher','Teacher'),
         ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='profesor')
+    role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='Teacher')
     password_professor = models.CharField(max_length=128, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
