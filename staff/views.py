@@ -106,3 +106,15 @@ def create_admin(request):
     return Response({"message": "Admin user created."})
 
 
+@api_view(['PATCH'])
+def edit_professor(request,pk):
+    try: 
+        professor = Staff.objects.get(pk=pk, role='Teacher')
+    except Staff.DoesNotExist:
+        return Response({'error': 'Professor not found.'}, status=404)
+    professor.first_name = request.data.get('first_name', professor.first_name)
+    professor.last_name = request.data.get('last_name', professor.last_name)
+    professor.username = request.data.get('username', professor.username)
+    professor.save()
+    serializer = StaffSerializer(professor)
+    return Response(serializer.data)

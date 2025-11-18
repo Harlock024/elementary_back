@@ -44,6 +44,17 @@ class SchoolGradeViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+    def patch(self,request,pk):
+        try:
+            school_grade = SchoolGrade.objects.get(pk=pk)
+        except SchoolGrade.DoesNotExist:
+            return Response({"error": "School Grade not found"}, status=404)
+
+        serializer = SchoolGradeSerializer(school_grade, data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 class GroupViewSet(APIView):
@@ -75,6 +86,18 @@ class GroupViewSet(APIView):
             return Response({"error": "Group not found"}, status=404)
 
         serializer = GroupSerializer(group, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def patch(self,request,pk):
+        try:
+            group = Group.objects.get(pk=pk)
+        except Group.DoesNotExist:
+            return Response({"error": "Group not found"}, status=404)
+
+        serializer = GroupSerializer(group, data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -116,6 +139,18 @@ class SubjectViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+    def patch(self,request,pk):
+        try:
+            subject = Subject.objects.get(pk=pk)
+        except Subject.DoesNotExist:
+            return Response({"error": "Subject not found"}, status=404)
+
+        serializer = SubjectSerializer(subject, data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
 
 
 # en revision, posible conflicto con student viewset al crear matricula
@@ -149,6 +184,18 @@ class EnrollmentViewSet(APIView):
             return Response({"error": "Enrollment not found"}, status=404)
 
         serializer = EnrollmentSerializer(enrollment, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def patch(self,request,pk):
+        try:
+            enrollment = Enrollment.objects.get(pk=pk)
+        except Enrollment.DoesNotExist:
+            return Response({"error": "Enrollment not found"}, status=404)
+
+        serializer = EnrollmentSerializer(enrollment, data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -213,6 +260,20 @@ class ClassRoomViewSet(APIView):
             return Response({"error": "ClassRoom not found"}, status=404)
         classroom.delete()
         return Response(status=204)
+
+
+    def patch(self,request,pk):
+        try:
+            classroom = ClassRoom.objects.get(pk=pk)
+        except ClassRoom.DoesNotExist:
+            return Response({"error": "ClassRoom not found"}, status=404)
+
+        serializer = ClassRoomSerializer(classroom, data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
 
 
 

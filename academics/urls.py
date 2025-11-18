@@ -14,7 +14,7 @@ urlpatterns = [
         # Group endpoints
             path('groups/', GroupViewSet.as_view(), name='group-list'),
             path('groups/<uuid:pk>/', GroupViewSet.as_view(), name='group-detail'),
-        
+
         # Subject endpoints
             path('subjects/', SubjectViewSet.as_view(), name='subject-list'),
             path('subjects/<uuid:pk>/', SubjectViewSet.as_view(), name='subject-detail'),
