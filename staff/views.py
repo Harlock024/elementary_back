@@ -34,7 +34,7 @@ class StaffLoginView(TokenObtainPairView):
 
 @api_view(['GET'])
 def list_professors(request):
-    professors = Staff.objects.filter(role='profesor')
+    professors = Staff.objects.filter(role='Teacher')
     serializer = StaffSerializer(professors, many=True)
     return Response({'professors': serializer.data})
 
