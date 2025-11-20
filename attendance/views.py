@@ -7,18 +7,29 @@ from .serializer import AttendanceSerializer,AttendanceCatalogSerializer
 
 
 class AttendaceView(APIView):
-    def get(self, request,class_id=None):
+    def get(self, request,class_id=None,date=None,student_id=None):
         if class_id: 
             attendance = Attendance.objects.filter(class_room_id=class_id)
             serializer = AttendanceSerializer(attendance, many=True)
             data = serializer.data
             return Response(data)
-    
+
+        elif class_id and date:
+            attendance = Attendance.objects.filter(class_room_id=class_id, date=date)
+            serializer = AttendanceSerializer(attendance, many=True)
+            data = serializer.data
+            return Response(data)
+        elif student_id and date:
+            attendance = Attendance.objects.filter(student_id=student_id, date=date)
+            serializer = AttendanceSerializer(attendance, many=True)
+            data = serializer.data
+            return Response(data)
         elif not class_id:
             all_attendance = Attendance.objects.all()
             serializer = AttendanceSerializer(all_attendance, many=True)
             data = serializer.data
             return Response(data)
+
 
 
     def post(self, request, class_id=None):

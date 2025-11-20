@@ -17,20 +17,15 @@ class StudentViewSet(APIView):
             except Student.DoesNotExist:
                 return Response({"error": "Student not found"}, status=404)
             serializer = StudentDetailSerializer(student)
-            return Response(serializer.data)
+            return Response({'students':serializer.data})
         else:
             students = Student.objects.all()
             serializer = StudentDetailSerializer(students, many=True)
-            return Response(serializer.data)
+            return Response({'students':serializer.data})
 
 
 # create student with enrollment 
     def post(self, request):
-
-
-        
-
-
         data = Student(
             first_name=request.data.get('first_name'),
             second_name=request.data.get('second_name'),
