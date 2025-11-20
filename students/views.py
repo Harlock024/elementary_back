@@ -2,7 +2,7 @@ from asyncio import wait
 from .models import Student
 from academics.models import Enrollment
 from rest_framework.response import Response
-from .serializer import StudentSerializer
+from .serializer import StudentSerializer,StudentDetailSerializer
 from rest_framework.views import  APIView
 
 from elementary_back.middleware import IsAdmin
@@ -16,11 +16,11 @@ class StudentViewSet(APIView):
                 student = Student.objects.get(pk=pk)
             except Student.DoesNotExist:
                 return Response({"error": "Student not found"}, status=404)
-            serializer = StudentSerializer(student)
+            serializer = StudentDetailSerializer(student)
             return Response(serializer.data)
         else:
             students = Student.objects.all()
-            serializer = StudentSerializer(students, many=True)
+            serializer = StudentDetailSerializer(students, many=True)
             return Response(serializer.data)
 
 

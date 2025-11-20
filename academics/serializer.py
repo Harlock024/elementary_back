@@ -6,12 +6,15 @@ from .models import ClassRoom, Enrollment , SchoolGrade, Group, Subject
 from academics.models import Group
 
 
-
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = ['id', 'group', 'period', 'state']
+        fields = ['id','period', 'state']
 
+class EnrollmentDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'group', 'period', 'state', 'created_at', 'updated_at']
 
 class SchoolGradeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,7 +38,7 @@ class SubjectSerializer(serializers.ModelSerializer):
     school_grade = SchoolGradeNameOnlySerializer(read_only=True)
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
+    fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
 
 class SubjectNameOnlySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,8 +48,6 @@ class SubjectNameOnlySerializer(serializers.ModelSerializer):
 class ClassRoomSerializer(serializers.ModelSerializer):
     group = GroupSerializer(read_only=True) 
     staff = StaffSerializerNameOnly(read_only=True)
-
-
     students = serializers.SerializerMethodField()
     class Meta:
         model = ClassRoom
