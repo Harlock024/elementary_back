@@ -36,7 +36,6 @@ class SchoolGrade(models.Model):
     class Meta:
         db_table = "school_grades"
 
-
 # Grupo dentro del nivel escolar ej A, B, C
 class Group(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

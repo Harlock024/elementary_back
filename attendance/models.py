@@ -1,4 +1,6 @@
+from enum import unique
 from django.db import models
+from django.utils import tree
 from academics.models import ClassRoom
 from students.models import Student
 import uuid
@@ -17,8 +19,6 @@ class CatalogTypeAtendance(models.Model):
     def __str__(self):
         return self.name
 
-
-
 class Attendance(models.Model):
     student = models.ForeignKey(
         Student,
@@ -27,9 +27,10 @@ class Attendance(models.Model):
     )
     state_code = models.ForeignKey(
         CatalogTypeAtendance,
-        on_delete=models.CASCADE,
+        on_delete=models.RESTRICT,
         related_name='attendances'
     )
+
     class_room = models.ForeignKey(
         ClassRoom,
         on_delete=models.CASCADE,
