@@ -18,6 +18,7 @@ urlpatterns = [
         # Subject endpoints
             path('subjects/', SubjectViewSet.as_view(), name='subject-list'),
             path('subjects/<uuid:pk>/', SubjectViewSet.as_view(), name='subject-detail'),
+            path('subjects/classroom/<uuid:class_id>/', SubjectViewSet.as_view(), name='subjects-by-classroom'),
 
         # Enrollment endpoints
             path('enrollments/', EnrollmentViewSet.as_view(), name='enrollment-list'),

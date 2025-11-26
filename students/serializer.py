@@ -20,7 +20,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class StudentSerializerNameOnly(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ['id', 'first_name']
+        fields = ['id', 'first_name','last_name']
 
 class StudentDetailSerializer(serializers.ModelSerializer):
     enrollments = EnrollmentSerializer(read_only=True, many=True)

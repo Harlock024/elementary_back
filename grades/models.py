@@ -44,21 +44,13 @@ class StudentGrade(models.Model):
     )
     score = models.DecimalField(max_digits=5, decimal_places=2)
     max_score = models.DecimalField(max_digits=5, decimal_places=2)
+    date = models.DateField(auto_now_add=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "student_grades"
-        constraints = [
-            models.UniqueConstraint(
-                fields=['student', 'class_room', 'type_code'],
-                name='unique_grade_per_student_classroom_type'
-                ),
-        ]
-        indexes = [
-            models.Index(fields=['type_code'], name='idx_type_code'),
-                ]
 
     def __str__(self):
         return f"{self.student} - {self.description or self.type_code.code} ({self.score}/{self.max_score})"

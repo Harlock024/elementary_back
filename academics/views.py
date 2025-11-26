@@ -106,7 +106,7 @@ class GroupViewSet(APIView):
 class SubjectViewSet(APIView):
     permission_classes = [IsAdmin]
 
-    def get(self, request, pk=None):
+    def get(self, request, pk=None,class_id=None):
         if pk:
             try:
                 subject = Subject.objects.get(pk=pk)
@@ -114,6 +114,11 @@ class SubjectViewSet(APIView):
                 return Response({"error": "Subject not found"}, status=404)
             serializer = SubjectSerializer(subject)
             return Response(serializer.data)
+        elif class_id:
+                classroom_group = ClassRoom.objects.get(pk=class_id).group
+                subjects = Subject.objects.filter(school_grade=classroom_group.school_grade)
+                serializer = SubjectSerializer(subjects, many=True)
+                return Response(serializer.data)
         else:
             subjects = Subject.objects.all()
             serializer = SubjectSerializer(subjects, many=True)

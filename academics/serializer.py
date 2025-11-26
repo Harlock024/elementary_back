@@ -35,10 +35,15 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = ['id', 'letter', 'school_grade', 'created_at', 'updated_at']
 
 class SubjectSerializer(serializers.ModelSerializer):
-    school_grade = SchoolGradeNameOnlySerializer(read_only=True)
     class Meta:
         model = Subject
-    fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
+        fields = ['id', 'name']
+
+class SubjectDetailSerializer(serializers.ModelSerializer):
+    school_grade = SchoolGradeSerializer(read_only=True)
+    class Meta:
+        model = Subject
+        fields = ['id', 'name', 'school_grade', 'created_at', 'updated_at']
 
 class SubjectNameOnlySerializer(serializers.ModelSerializer):
     class Meta:
