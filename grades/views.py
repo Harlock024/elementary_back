@@ -1,3 +1,4 @@
+from asyncio import wait
 from django.http import request
 from django.shortcuts import render
 from rest_framework.response import Response
@@ -10,7 +11,6 @@ from .serializer import StudentGradeSerializer, CatalogTypeGradeSerializer
 
 
 class GradeViewSet(APIView):
-
     def get(self, request, class_room_id=None, pk=None):
         if pk:
             try:
@@ -29,18 +29,24 @@ class GradeViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        student_id= request.data.get('student')
-        student = Student.objects.get(pk=student_id)
-        if not student:
-             return Response({"error": "Student not found"}, status=404)
+        try: 
+            student_id = request.data.get("student")
 
-        class_room = ClassRoom.objects.get(pk=request.data.get('class_room'))   
-        if not class_room:
-             return Response({"error": "ClassRoom not found"}, status=404)
-         
-        type_code = CatalogTypeGrade.objects.get(pk=request.data.get('type_code'))
-        if not type_code:
-               return Response({"error": "Catalog Type not found"}, status=404)
+            student = Student.objects.get(pk=student_id)
+                
+        except Student.DoesNotExist:
+            return Response({"error":"Student not found"},status=404)
+       
+        try:
+            class_room_id = request.data.get("class_room")
+            class_room = ClassRoom.objects.get(pk=class_room_id)
+        except ClassRoom.DoesNotExist:
+            return Response({"error":"ClassRoom not found"},status=404)
+        try:
+            type_code_id = request.data.get("type_code")
+            catalog_type = CatalogTypeGrade.objects.get(pk=type_code_id)
+        except CatalogTypeGrade.DoesNotExist:
+            return Response({"error":"Catalog Type not found"},status=404)
 
         student_grade_data = StudentGrade(
         student=student,
@@ -48,11 +54,11 @@ class GradeViewSet(APIView):
         score=request.data.get('score'),
         max_score=request.data.get('max_score'),
         description=request.data.get('description'),
-        type_code=type_code
+        type_code=catalog_type
         )
-        student_grade_data.save()       
-        serializer = StudentGradeSerializer(student_grade_data)
+        serializer = StudentGradeSerializer(student_grade_data, data=request.data)
         if serializer.is_valid():
+            serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
     def put(self, request, pk):
