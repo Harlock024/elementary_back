@@ -74,7 +74,13 @@ class GroupViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        serializer = GroupSerializer(data=request.data)
+        
+        school_grade = SchoolGrade.objects.get(pk=request.data.get('school_grade'))
+        data = Group(
+            letter=request.data.get('letter'),
+            school_grade=school_grade
+            )
+        serializer = GroupSerializer(school_grade,data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
