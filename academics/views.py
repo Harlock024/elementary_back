@@ -1,11 +1,18 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from elementary_back.middleware import IsAdmin
 
+from elementary_back.middleware import IsAdmin
 from staff.models import Staff
-from .models import Enrollment, SchoolGrade, Group, Subject,ClassRoom
-from .serializer import EnrollmentSerializer, SchoolGradeSerializer, GroupSerializer, SubjectSerializer,ClassRoomSerializer
-from academics import serializer
+
+from .models import ClassRoom, Enrollment, Group, SchoolGrade, Subject
+from .serializer import (
+    ClassRoomSerializer,
+    EnrollmentSerializer,
+    GroupSerializer,
+    SchoolGradeSerializer,
+    SubjectSerializer,
+)
+
 
 class SchoolGradeViewSet(APIView):
     permission_classes = [IsAdmin]
@@ -24,14 +31,13 @@ class SchoolGradeViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        data = SchoolGrade(
-            name=request.data.get('name') 
-            )
+        data = SchoolGrade(name=request.data.get("name"))
         serializer = SchoolGradeSerializer(data=data.__dict__)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+
     def put(self, request, pk):
         try:
             school_grade = SchoolGrade.objects.get(pk=pk)
@@ -44,13 +50,15 @@ class SchoolGradeViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
-    def patch(self,request,pk):
+    def patch(self, request, pk):
         try:
             school_grade = SchoolGrade.objects.get(pk=pk)
         except SchoolGrade.DoesNotExist:
             return Response({"error": "School Grade not found"}, status=404)
 
-        serializer = SchoolGradeSerializer(school_grade, data=request.data,partial=True)
+        serializer = SchoolGradeSerializer(
+            school_grade, data=request.data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -74,17 +82,14 @@ class GroupViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        
-        school_grade = SchoolGrade.objects.get(pk=request.data.get('school_grade'))
-        data = Group(
-            letter=request.data.get('letter'),
-            school_grade=school_grade
-            )
-        serializer = GroupSerializer(school_grade,data=request.data)
+        school_grade = SchoolGrade.objects.get(pk=request.data.get("school_grade"))
+        data = Group(letter=request.data.get("letter"), school_grade=school_grade)
+        serializer = GroupSerializer(school_grade, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+
     def put(self, request, pk):
         try:
             group = Group.objects.get(pk=pk)
@@ -97,22 +102,23 @@ class GroupViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
-    def patch(self,request,pk):
+    def patch(self, request, pk):
         try:
             group = Group.objects.get(pk=pk)
         except Group.DoesNotExist:
             return Response({"error": "Group not found"}, status=404)
 
-        serializer = GroupSerializer(group, data=request.data,partial=True)
+        serializer = GroupSerializer(group, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+
 class SubjectViewSet(APIView):
     permission_classes = [IsAdmin]
 
-    def get(self, request, pk=None,class_id=None):
+    def get(self, request, pk=None, class_id=None):
         if pk:
             try:
                 subject = Subject.objects.get(pk=pk)
@@ -121,17 +127,16 @@ class SubjectViewSet(APIView):
             serializer = SubjectSerializer(subject)
             return Response(serializer.data)
         elif class_id:
-                classroom_group = ClassRoom.objects.get(pk=class_id).group
-                subjects = Subject.objects.filter(school_grade=classroom_group.school_grade)
-                serializer = SubjectSerializer(subjects, many=True)
-                return Response(serializer.data)
+            classroom_group = ClassRoom.objects.get(pk=class_id).group
+            subjects = Subject.objects.filter(school_grade=classroom_group.school_grade)
+            serializer = SubjectSerializer(subjects, many=True)
+            return Response(serializer.data)
         else:
             subjects = Subject.objects.all()
             serializer = SubjectSerializer(subjects, many=True)
             return Response(serializer.data)
 
     def post(self, request):
-
         serializer = SubjectSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -150,18 +155,17 @@ class SubjectViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
-    def patch(self,request,pk):
+    def patch(self, request, pk):
         try:
             subject = Subject.objects.get(pk=pk)
         except Subject.DoesNotExist:
             return Response({"error": "Subject not found"}, status=404)
 
-        serializer = SubjectSerializer(subject, data=request.data,partial=True)
+        serializer = SubjectSerializer(subject, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
-
 
 
 # en revision, posible conflicto con student viewset al crear matricula
@@ -200,22 +204,21 @@ class EnrollmentViewSet(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
-    def patch(self,request,pk):
+    def patch(self, request, pk):
         try:
             enrollment = Enrollment.objects.get(pk=pk)
         except Enrollment.DoesNotExist:
             return Response({"error": "Enrollment not found"}, status=404)
 
-        serializer = EnrollmentSerializer(enrollment, data=request.data,partial=True)
+        serializer = EnrollmentSerializer(enrollment, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
 
- # ClassRoom ViewSet
+# ClassRoom ViewSet
 class ClassRoomViewSet(APIView):
-
     def get(self, request, pk=None):
         staff = self.request.user
         if pk:
@@ -226,31 +229,33 @@ class ClassRoomViewSet(APIView):
             serializer = ClassRoomSerializer(classroom)
             return Response(serializer.data)
         else:
-            if staff.role == 'Admin':
+            if staff.role == "Admin":
                 classrooms = ClassRoom.objects.all()
-            elif staff.role == 'Teacher':
+            elif staff.role == "Teacher":
                 classrooms = ClassRoom.objects.filter(staff=staff)
             else:
-                return Response({'detail':'You do not have permission to access this resource.'},status=403)
+                return Response(
+                    {"detail": "You do not have permission to access this resource."},
+                    status=403,
+                )
 
             serializer = ClassRoomSerializer(classrooms, many=True)
             return Response(serializer.data)
 
-
     def post(self, request):
-        group = Group.objects.get(pk=request.data.get('group_id'))
-        staff = Staff.objects.get(pk=request.data.get('staff_id'))
+        group = Group.objects.get(pk=request.data.get("group_id"))
+        staff = Staff.objects.get(pk=request.data.get("staff_id"))
         data = ClassRoom(
             group=group,
             staff=staff,
         )
 
-        serializer = ClassRoomSerializer(data,data=request.data)
+        serializer = ClassRoomSerializer(data, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
-        
+
     def put(self, request, pk):
         try:
             classroom = ClassRoom.objects.get(pk=pk)
@@ -271,20 +276,14 @@ class ClassRoomViewSet(APIView):
         classroom.delete()
         return Response(status=204)
 
-
-    def patch(self,request,pk):
+    def patch(self, request, pk):
         try:
             classroom = ClassRoom.objects.get(pk=pk)
         except ClassRoom.DoesNotExist:
             return Response({"error": "ClassRoom not found"}, status=404)
 
-        serializer = ClassRoomSerializer(classroom, data=request.data,partial=True)
+        serializer = ClassRoomSerializer(classroom, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
-
-
-
-
-
