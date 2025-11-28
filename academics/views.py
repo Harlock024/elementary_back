@@ -245,8 +245,7 @@ class ClassRoomViewSet(APIView):
             staff=staff,
         )
 
-        data.save()
-        serializer = classroom = ClassRoomSerializer(data)
+        serializer = ClassRoomSerializer(data,data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
