@@ -23,7 +23,7 @@ class SchoolGradeViewSet(APIView):
                 school_grade = SchoolGrade.objects.get(pk=pk)
             except SchoolGrade.DoesNotExist:
                 return Response({"error": "School Grade not found"}, status=404)
-            serializer = SchoolGradeSerializer(school_grade)
+            serializer = SchoolGradeSerializer(school_grade,data=request.data)
             return Response(serializer.data)
         else:
             school_grades = SchoolGrade.objects.all()
@@ -32,7 +32,7 @@ class SchoolGradeViewSet(APIView):
 
     def post(self, request):
         data = SchoolGrade(name=request.data.get("name"))
-        serializer = SchoolGradeSerializer(data=data.__dict__)
+        serializer = SchoolGradeSerializer(data,data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
@@ -83,8 +83,13 @@ class GroupViewSet(APIView):
 
     def post(self, request):
         school_grade = SchoolGrade.objects.get(pk=request.data.get("school_grade"))
-        data = Group(letter=request.data.get("letter"), school_grade=school_grade)
-        serializer = GroupSerializer(data=data)
+        if not school_grade.DoesNotExist:
+            return Response({"error": "School Grade not found"}, status=404)
+        data = Group(
+            letter=request.data.get("letter"),
+            school_grade=school_grade,
+        )
+        serializer = GroupSerializer(data, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
