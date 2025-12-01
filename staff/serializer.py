@@ -9,6 +9,10 @@ class StaffSerializer(serializers.ModelSerializer):
         model = Staff
         fields = ['id', 'username', 'first_name', 'last_name',"password_professor", 'role', 'created_at', 'updated_at']  
 
+class StaffSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = Staff
+        fields = ['id', 'username', 'first_name', 'last_name', 'role', 'created_at', 'updated_at']
 
 class StaffSerializerNameOnly(serializers.ModelSerializer):
     class Meta:

@@ -1,4 +1,5 @@
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Staff
 from rest_framework.decorators import api_view
 from .serializer import StaffSerializer
@@ -6,6 +7,20 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import random
 import string
+
+
+
+class StaffProfileView(APIView):
+    def get(self, request):
+        serializer = StaffSerializer(request.user)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        serializer = StaffSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -29,6 +44,8 @@ class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class StaffLoginView(TokenObtainPairView):
     serializer_class = StaffTokenObtainPairSerializer
+
+
 
 
 @api_view(['GET'])
