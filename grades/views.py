@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from students.models import Student
-from academics.models import ClassRoom
+from academics.models import ClassRoom, SchoolGrade, Subject
 from .models import StudentGrade,CatalogTypeGrade
 from .serializer import StudentGradeSerializer, CatalogTypeGradeSerializer
 
@@ -31,12 +31,10 @@ class GradeViewSet(APIView):
     def post(self, request):
         try: 
             student_id = request.data.get("student")
-
             student = Student.objects.get(pk=student_id)
                 
         except Student.DoesNotExist:
             return Response({"error":"Student not found"},status=404)
-       
         try:
             class_room_id = request.data.get("class_room")
             class_room = ClassRoom.objects.get(pk=class_room_id)
@@ -47,9 +45,15 @@ class GradeViewSet(APIView):
             catalog_type = CatalogTypeGrade.objects.get(pk=type_code_id)
         except CatalogTypeGrade.DoesNotExist:
             return Response({"error":"Catalog Type not found"},status=404)
+        try: 
+            subject_id = request.data.get("subject")
+            subject = Subject.objects.get(pk=subject_id)
+        except Exception:
+            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
 
         student_grade_data = StudentGrade(
         student=student,
+        subject=subject,
         class_room=class_room,
         score=request.data.get('score'),
         max_score=request.data.get('max_score'),
@@ -61,12 +65,39 @@ class GradeViewSet(APIView):
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
+
     def put(self, request, pk):
+        try: 
+            student_id = request.data.get("student")
+            student = Student.objects.get(pk=student_id)
+                
+        except Student.DoesNotExist:
+            return Response({"error":"Student not found"},status=404)
         try:
-            grade = StudentGrade.objects.get(pk=pk)
-        except StudentGrade.DoesNotExist:
-            return Response({"error": "Grade not found"}, status=404)
-        serializer = StudentGradeSerializer(grade, data=request.data)
+            class_room_id = request.data.get("class_room")
+            class_room = ClassRoom.objects.get(pk=class_room_id)
+        except ClassRoom.DoesNotExist:
+            return Response({"error":"ClassRoom not found"},status=404)
+        try:
+            type_code_id = request.data.get("type_code")
+            catalog_type = CatalogTypeGrade.objects.get(pk=type_code_id)
+        except CatalogTypeGrade.DoesNotExist:
+            return Response({"error":"Catalog Type not found"},status=404)
+        try: 
+            subject_id = request.data.get("subject")
+            subject = Subject.objects.get(pk=subject_id)
+        except Exception:
+            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
+        data = StudentGrade(
+            student=student,
+            subject=subject,
+            class_room=class_room,
+            score=request.data.get('score'),
+            max_score=request.data.get('max_score'),
+            description=request.data.get('description'),
+            type_code=catalog_type
+            )
+        serializer = StudentGradeSerializer(data, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
