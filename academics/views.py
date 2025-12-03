@@ -142,7 +142,15 @@ class SubjectViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        serializer = SubjectSerializer(data=request.data)
+        school_grade = SchoolGrade.objects.get(pk=request.data.get("school_grade"))
+        if not school_grade:
+            return Response({"error": "School Grade not found"}, status=404)
+        data = Subject(
+            name=request.data.get("name"),
+            school_grade=school_grade,
+            description=request.data.get("description"),
+        )
+        serializer = SubjectSerializer(data, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)

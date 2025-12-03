@@ -8,6 +8,38 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import random
 import string
 
+class StaffView(APIView):
+    def get(self, request):
+        staffs = Staff.objects.all()
+        serializer = StaffSerializer(staffs, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = StaffSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def put(self, request, pk):
+        try:
+            staff = Staff.objects.get(pk=pk)
+        except Staff.DoesNotExist:
+            return Response({'error': 'Staff not found.'}, status=404)
+        serializer = StaffSerializer(staff, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, pk):
+        try:
+            staff = Staff.objects.get(pk=pk)
+        except Staff.DoesNotExist:
+            return Response({'error': 'Staff not found.'}, status=404)
+        staff.delete()
+        return Response(status=204)
+
 
 
 class StaffProfileView(APIView):
@@ -52,7 +84,7 @@ class StaffLoginView(TokenObtainPairView):
 def list_professors(request):
     professors = Staff.objects.filter(role='Teacher')
     serializer = StaffSerializer(professors, many=True)
-    return Response({'professors': serializer.data})
+    return Response(serializer.data)
 
 
 @api_view(['POST'])
