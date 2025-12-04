@@ -15,11 +15,26 @@ class StaffView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = StaffSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+    
+        profesor = Staff(
+                first_name=request.data.get('first_name'),
+                last_name=request.data.get('last_name'),
+                username=request.data.get('first_name').lower() + '_' + request.data.get('last_name').lower(),
+                )  
+        # generar password y asignarlo al is_profesor
+        random_password =  generate_random_password()
+
+        # Asignar la contraseña generada al campo password_professor no hasheada solo visible para administradores
+        profesor.password_professor = random_password
+
+        # Asignar la contraseña generada al usuario  y guardarla en el campo password hasheada
+        profesor.set_password(random_password)
+
+
+        profesor.is_teacher()
+        profesor.save()
+        serializer = StaffSerializer(profesor)
+        return Response(serializer.data)
 
     def put(self, request, pk):
         try:
