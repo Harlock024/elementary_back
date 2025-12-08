@@ -67,36 +67,11 @@ class GradeViewSet(APIView):
         return Response(serializer.errors, status=400)
 
     def put(self, request, pk):
-        try: 
-            student_id = request.data.get("student")
-            student = Student.objects.get(pk=student_id)
-                
-        except Student.DoesNotExist:
-            return Response({"error":"Student not found"},status=404)
-        try:
-            class_room_id = request.data.get("class_room")
-            class_room = ClassRoom.objects.get(pk=class_room_id)
-        except ClassRoom.DoesNotExist:
-            return Response({"error":"ClassRoom not found"},status=404)
-        try:
-            type_code_id = request.data.get("type_code")
-            catalog_type = CatalogTypeGrade.objects.get(pk=type_code_id)
-        except CatalogTypeGrade.DoesNotExist:
-            return Response({"error":"Catalog Type not found"},status=404)
-        try: 
-            subject_id = request.data.get("subject")
-            subject = Subject.objects.get(pk=subject_id)
-        except Exception:
-            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
-        data = StudentGrade(
-            student=student,
-            subject=subject,
-            class_room=class_room,
-            score=request.data.get('score'),
-            max_score=request.data.get('max_score'),
-            description=request.data.get('description'),
-            type_code=catalog_type
-            )
+        if pk is None:
+            return Response({"error": "Grade ID is required for update"}, status=400)
+        data = StudentGrade.objects.get(pk=pk)
+        if data is None:
+            return Response({"error": "Grade not found"}, status=404)
         serializer = StudentGradeSerializer(data, data=request.data)
         if serializer.is_valid():
             serializer.save()
