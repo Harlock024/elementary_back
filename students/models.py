@@ -1,4 +1,5 @@
-from django.db import models
+from datetime import datetime
+from django.db import models, transaction
 from django.db.models import Max
 from academics.models import Group
 import uuid
@@ -22,13 +23,24 @@ class Student(models.Model):
         ]
     @classmethod
     def generate_enrollment_number(cls):
-        from datetime import datetime
-        prefix = f"E{datetime.now().year}"
+        with transaction.atomic():
+            year = datetime.now().year
+            prefix = f"E{year}"
 
-        last_code = cls.objects.filter(enrollment_number__startswith=prefix).aggregate(max_code=Max('enrollment_number'))['max_code']
-            
-        last_number = 0
-        if last_code:
-            last_number = int(last_code.replace(prefix,""))
+            last_code_date = cls.objects.filter(enrollment_number__startswith=prefix
+                                                ).select_for_update().aggregate(Max('enrollment_number'))
+            last_code = last_code_date['enrollment_number__max']
+            print( "last_code:", last_code)
 
-        return f"{prefix}{last_number + 1:05d}"
+            last_number = 0
+            if last_code:
+                last_number_str = last_code.replace(prefix, "")
+
+                if last_number_str.isdigit():
+                    last_number = int(last_number_str)
+
+
+            new_number = last_number + 1
+            enrollment_number = f"{prefix}{str(new_number).zfill(4)}"
+            return enrollment_number
+

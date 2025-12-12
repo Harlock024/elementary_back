@@ -1,6 +1,8 @@
 from asyncio import wait
+
+from django.db import transaction
 from .models import Student
-from academics.models import Enrollment
+from academics.models import Enrollment, Group
 from rest_framework.response import Response
 from .serializer import StudentSerializer,StudentDetailSerializer
 from rest_framework.views import  APIView
@@ -17,37 +19,40 @@ class StudentViewSet(APIView):
             except Student.DoesNotExist:
                 return Response({"error": "Student not found"}, status=404)
             serializer = StudentDetailSerializer(student)
-            return Response({'students':serializer.data})
+            return Response(serializer.data)
         else:
             students = Student.objects.all()
             serializer = StudentDetailSerializer(students, many=True)
-            return Response({'students':serializer.data})
-
+            return Response(serializer.data)
 
 # create student with enrollment 
     def post(self, request):
-        data = Student(
-            first_name=request.data.get('first_name'),
-            second_name=request.data.get('second_name'),
-            last_name=request.data.get('last_name'),
-            date_of_birth=request.data.get('date_of_birth'),
-            gender=request.data.get('gender'),
-            state =request.data.get('state'),
+
+        group_id= request.data.get("group_id")
+        try:
+            group = Group.objects.get(pk=group_id)
+        except Group.DoesNotExist:
+            return Response({"error": "Group not found"}, status=404)
+        with transaction.atomic():
+            data = Student(
+                first_name=request.data.get('first_name'),
+                second_name=request.data.get('second_name'),
+                last_name=request.data.get('last_name'),
+                date_of_birth=request.data.get('date_of_birth'),
+                gender=request.data.get('gender'),
+                state=request.data.get('state'),
+                )
+            data.enrollment_number = Student.generate_enrollment_number()
+            data.save()
+            enrollment = Enrollment(
+                student=data,
+                group=group,
+                period=request.data.get('period'),
+                state='active'
             )
-
-        data.enrollment_number = Student.generate_enrollment_number()
-        data.save()
-        enrollment = Enrollment(
-            student=data,
-            group_id=request.data.get('group_id'),
-            period=request.data.get('period'),
-            state='active'
-        )
-        enrollment.save()
+            enrollment.save()
         student_serializer = StudentSerializer(data)
-        return Response({"student ": student_serializer.data}, status=201)
-
-
+        return Response( student_serializer.data, status=201)
 
     def put(self, request, pk):
         try:
