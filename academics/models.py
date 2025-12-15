@@ -85,3 +85,8 @@ class ClassRoom(models.Model):
     class Meta:
         db_table = "class_rooms"
 
+    indexes = [
+        models.Index(fields=['staff', 'group'], name='idx_staff_group'),
+    ]
+
+
