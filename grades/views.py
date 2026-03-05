@@ -1,70 +1,70 @@
-from asyncio import wait
-from django.http import request
-from django.shortcuts import render
+from decimal import Decimal
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from students.models import Student
-from academics.models import ClassRoom, SchoolGrade, Subject
+from grades.application.dto.grade_dto import CreateGradeCommand
+from grades.domain.exceptions.grade_exceptions import (
+    CatalogTypeNotFoundError,
+    ClassRoomNotFoundForGradeError,
+    GradeNotFoundError,
+    StudentNotFoundForGradeError,
+    SubjectNotFoundForGradeError,
+)
+from grades.interfaces.http.grade_use_case_factory import (
+    build_create_grade_use_case,
+    build_get_grade_use_case,
+    build_list_grades_use_case,
+)
 from .models import StudentGrade,CatalogTypeGrade
 from .serializer import StudentGradeSerializer, CatalogTypeGradeSerializer
 
 
 class GradeViewSet(APIView):
     def get(self, request, class_room_id=None, pk=None):
+        get_grade_use_case = build_get_grade_use_case()
+        list_grades_use_case = build_list_grades_use_case()
+
         if pk:
             try:
-                grade = StudentGrade.objects.get(pk=pk)
-            except StudentGrade.DoesNotExist:
+                grade = get_grade_use_case.execute(pk)
+            except GradeNotFoundError:
                 return Response({"error": "Grade not found"}, status=404)
-            serializer = StudentGradeSerializer(grade)
-            return Response(serializer.data)
+            return Response(grade)
         elif class_room_id:
-            grades = StudentGrade.objects.filter(class_room__id=class_room_id)
-            serializer = StudentGradeSerializer(grades, many=True)
-            return Response(serializer.data)
+            return Response(list_grades_use_case.execute(class_room_id=str(class_room_id)))
         else:
-            grades = StudentGrade.objects.all()
-            serializer = StudentGradeSerializer(grades, many=True)
-            return Response(serializer.data)
+            return Response(list_grades_use_case.execute())
 
     def post(self, request):
-        try: 
-            student_id = request.data.get("student")
-            student = Student.objects.get(pk=student_id)
-                
-        except Student.DoesNotExist:
-            return Response({"error":"Student not found"},status=404)
-        try:
-            class_room_id = request.data.get("class_room")
-            class_room = ClassRoom.objects.get(pk=class_room_id)
-        except ClassRoom.DoesNotExist:
-            return Response({"error":"ClassRoom not found"},status=404)
-        try:
-            type_code_id = request.data.get("type_code")
-            catalog_type = CatalogTypeGrade.objects.get(pk=type_code_id)
-        except CatalogTypeGrade.DoesNotExist:
-            return Response({"error":"Catalog Type not found"},status=404)
-        try: 
-            subject_id = request.data.get("subject")
-            subject = Subject.objects.get(pk=subject_id)
-        except Exception:
-            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
+        required_fields = ["student", "class_room", "type_code", "subject", "score", "max_score"]
+        for field in required_fields:
+            if request.data.get(field) is None:
+                return Response({"error": f"{field} is required"}, status=400)
 
-        student_grade_data = StudentGrade(
-        student=student,
-        subject=subject,
-        class_room=class_room,
-        score=request.data.get('score'),
-        max_score=request.data.get('max_score'),
-        description=request.data.get('description'),
-        type_code=catalog_type
-        )
-        serializer = StudentGradeSerializer(student_grade_data, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        use_case = build_create_grade_use_case()
+        try:
+            command = CreateGradeCommand(
+                student_id=str(request.data.get("student")),
+                class_room_id=str(request.data.get("class_room")),
+                type_code_id=str(request.data.get("type_code")),
+                subject_id=str(request.data.get("subject")),
+                score=Decimal(str(request.data.get("score"))),
+                max_score=Decimal(str(request.data.get("max_score"))),
+                description=request.data.get("description"),
+            )
+            data = use_case.execute(command)
+            return Response(data, status=201)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        except StudentNotFoundForGradeError:
+            return Response({"error":"Student not found"},status=404)
+        except ClassRoomNotFoundForGradeError:
+            return Response({"error":"ClassRoom not found"},status=404)
+        except CatalogTypeNotFoundError:
+            return Response({"error":"Catalog Type not found"},status=404)
+        except SubjectNotFoundForGradeError:
+            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
 
     def put(self, request, pk):
         if pk is None:

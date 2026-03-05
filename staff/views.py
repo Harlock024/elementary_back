@@ -3,6 +3,11 @@ from rest_framework.views import APIView
 from .models import Staff
 from rest_framework.decorators import api_view
 from .serializer import StaffSerializer
+from staff.application.dto.staff_dto import CreateStaffCommand
+from staff.interfaces.http.staff_use_case_factory import (
+    build_create_staff_use_case,
+    build_list_staff_use_case,
+)
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import random
@@ -10,31 +15,24 @@ import string
 
 class StaffView(APIView):
     def get(self, request):
-        staffs = Staff.objects.all()
-        serializer = StaffSerializer(staffs, many=True)
-        return Response(serializer.data)
+        use_case = build_list_staff_use_case()
+        return Response(use_case.execute())
 
     def post(self, request):
-    
-        profesor = Staff(
-                first_name=request.data.get('first_name'),
-                last_name=request.data.get('last_name'),
-                username=request.data.get('first_name').lower() + '_' + request.data.get('last_name').lower(),
-                )  
-        # generar password y asignarlo al is_profesor
-        random_password =  generate_random_password()
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
+        if not first_name or not last_name:
+            return Response({"error": "first_name and last_name are required"}, status=400)
 
-        # Asignar la contraseña generada al campo password_professor no hasheada solo visible para administradores
-        profesor.password_professor = random_password
+        use_case = build_create_staff_use_case()
+        command = CreateStaffCommand(first_name=first_name, last_name=last_name)
 
-        # Asignar la contraseña generada al usuario  y guardarla en el campo password hasheada
-        profesor.set_password(random_password)
+        try:
+            data = use_case.execute(command)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
 
-
-        profesor.is_teacher()
-        profesor.save()
-        serializer = StaffSerializer(profesor)
-        return Response(serializer.data)
+        return Response(data)
 
     def put(self, request, pk):
         try:
