@@ -1,0 +1,2 @@
+class SchoolGradeNotFoundError(Exception):
+    pass

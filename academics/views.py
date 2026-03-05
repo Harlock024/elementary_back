@@ -1,6 +1,13 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand
+from academics.domain.exceptions.school_grade_exceptions import SchoolGradeNotFoundError
+from academics.interfaces.http.school_grade_use_case_factory import (
+    build_create_school_grade_use_case,
+    build_get_school_grade_use_case,
+    build_list_school_grades_use_case,
+)
 from elementary_back.middleware import IsAdmin
 from staff.models import Staff
 
@@ -18,25 +25,30 @@ class SchoolGradeViewSet(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, pk=None):
+        get_school_grade_use_case = build_get_school_grade_use_case()
+        list_school_grades_use_case = build_list_school_grades_use_case()
+
         if pk:
             try:
-                school_grade = SchoolGrade.objects.get(pk=pk)
-            except SchoolGrade.DoesNotExist:
+                school_grade = get_school_grade_use_case.execute(str(pk))
+            except SchoolGradeNotFoundError:
                 return Response({"error": "School Grade not found"}, status=404)
-            serializer = SchoolGradeSerializer(school_grade,data=request.data)
-            return Response(serializer.data)
+            return Response(school_grade)
         else:
-            school_grades = SchoolGrade.objects.all()
-            serializer = SchoolGradeSerializer(school_grades, many=True)
-            return Response(serializer.data)
+            return Response(list_school_grades_use_case.execute())
 
     def post(self, request):
-        data = SchoolGrade(name=request.data.get("name"))
-        serializer = SchoolGradeSerializer(data,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        name = request.data.get("name")
+        if name is None:
+            return Response({"error": "name is required"}, status=400)
+
+        use_case = build_create_school_grade_use_case()
+        command = CreateSchoolGradeCommand(name=name)
+        try:
+            data = use_case.execute(command)
+            return Response(data, status=201)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
 
     def put(self, request, pk):
         try:

@@ -1,11 +1,19 @@
-from asyncio import wait
+from datetime import date
 
-from django.db import transaction
 from .models import Student
-from academics.models import Enrollment, Group
 from rest_framework.response import Response
-from .serializer import StudentSerializer,StudentDetailSerializer
+from .serializer import StudentSerializer
 from rest_framework.views import  APIView
+from students.application.dto.student_dto import CreateStudentCommand
+from students.domain.exceptions.student_exceptions import (
+    GroupNotFoundError,
+    StudentNotFoundError,
+)
+from students.interfaces.http.student_use_case_factory import (
+    build_create_student_use_case,
+    build_get_student_detail_use_case,
+    build_list_students_use_case,
+)
 
 from elementary_back.middleware import IsAdmin
 
@@ -13,46 +21,51 @@ class StudentViewSet(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request, pk=None):
+        list_students_use_case = build_list_students_use_case()
+        get_student_use_case = build_get_student_detail_use_case()
+
         if pk:
             try:
-                student = Student.objects.get(pk=pk)
-            except Student.DoesNotExist:
+                student = get_student_use_case.execute(str(pk))
+            except StudentNotFoundError:
                 return Response({"error": "Student not found"}, status=404)
-            serializer = StudentDetailSerializer(student)
-            return Response(serializer.data)
+            return Response(student)
         else:
-            students = Student.objects.all()
-            serializer = StudentDetailSerializer(students, many=True)
-            return Response(serializer.data)
+            students = list_students_use_case.execute()
+            return Response(students)
 
 # create student with enrollment 
     def post(self, request):
+        create_student_use_case = build_create_student_use_case()
 
-        group_id= request.data.get("group_id")
+        group_id = request.data.get("group_id")
+        period = request.data.get("period")
+        birth_date = request.data.get("date_of_birth")
+
+        if group_id is None:
+            return Response({"error": "group_id is required"}, status=400)
+        if period is None:
+            return Response({"error": "period is required"}, status=400)
+        if birth_date is None:
+            return Response({"error": "date_of_birth is required"}, status=400)
+
         try:
-            group = Group.objects.get(pk=group_id)
-        except Group.DoesNotExist:
-            return Response({"error": "Group not found"}, status=404)
-        with transaction.atomic():
-            data = Student(
-                first_name=request.data.get('first_name'),
-                second_name=request.data.get('second_name'),
-                last_name=request.data.get('last_name'),
-                date_of_birth=request.data.get('date_of_birth'),
-                gender=request.data.get('gender'),
-                state=request.data.get('state'),
-                )
-            data.enrollment_number = Student.generate_enrollment_number()
-            data.save()
-            enrollment = Enrollment(
-                student=data,
-                group=group,
-                period=request.data.get('period'),
-                state='active'
+            command = CreateStudentCommand(
+                first_name=request.data.get("first_name"),
+                second_name=request.data.get("second_name"),
+                last_name=request.data.get("last_name"),
+                date_of_birth=date.fromisoformat(birth_date),
+                gender=request.data.get("gender"),
+                state=request.data.get("state"),
+                group_id=str(group_id),
+                period=period,
             )
-            enrollment.save()
-        student_serializer = StudentSerializer(data)
-        return Response( student_serializer.data, status=201)
+            student_data = create_student_use_case.execute(command)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        except GroupNotFoundError:
+            return Response({"error": "Group not found"}, status=404)
+        return Response(student_data, status=201)
 
     def put(self, request, pk):
         try:
