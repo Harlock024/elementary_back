@@ -1,7 +1,8 @@
 import random
 import string
 
-from staff.application.dto.staff_dto import CreateStaffCommand
+from staff.application.dto.staff_dto import CreateStaffCommand, UpdateStaffCommand
+from staff.domain.exceptions.staff_exceptions import StaffNotFoundError
 from staff.models import Staff
 from staff.serializer import StaffSerializer
 
@@ -29,3 +30,26 @@ class DjangoStaffRepository:
         profesor.save()
 
         return StaffSerializer(profesor).data
+
+    def update_staff(self, command: UpdateStaffCommand) -> dict:
+        staff = Staff.objects.filter(pk=command.staff_id).first()
+        if staff is None:
+            raise StaffNotFoundError("Staff not found")
+
+        if command.first_name is not None:
+            staff.first_name = command.first_name
+        if command.last_name is not None:
+            staff.last_name = command.last_name
+        if command.username is not None:
+            staff.username = command.username
+        if command.role is not None:
+            staff.role = command.role
+
+        staff.save()
+        return StaffSerializer(staff).data
+
+    def delete_staff(self, staff_id: str) -> None:
+        staff = Staff.objects.filter(pk=staff_id).first()
+        if staff is None:
+            raise StaffNotFoundError("Staff not found")
+        staff.delete()

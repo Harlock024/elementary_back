@@ -1,4 +1,7 @@
-from attendance.application.dto.attendance_dto import CreateAttendanceCommand
+from attendance.application.dto.attendance_dto import (
+    CreateAttendanceCommand,
+    UpdateAttendanceCommand,
+)
 from attendance.domain.entities.attendance_entity import AttendanceEntity
 from attendance.domain.repositories.attendance_repository import AttendanceRepository
 
@@ -32,3 +35,11 @@ class CreateAttendanceUseCase:
             attendance_date=command.attendance_date,
         )
         return self.repository.create_attendance(command)
+
+
+class UpdateAttendanceUseCase:
+    def __init__(self, repository: AttendanceRepository):
+        self.repository = repository
+
+    def execute(self, command: UpdateAttendanceCommand) -> dict:
+        return self.repository.update_attendance(command)

@@ -1,4 +1,4 @@
-from staff.application.dto.staff_dto import CreateStaffCommand
+from staff.application.dto.staff_dto import CreateStaffCommand, UpdateStaffCommand
 from staff.domain.entities.staff_entity import StaffEntity
 from staff.domain.repositories.staff_repository import StaffRepository
 
@@ -23,3 +23,19 @@ class CreateStaffUseCase:
             username=username,
         )
         return self.repository.create_staff(command)
+
+
+class UpdateStaffUseCase:
+    def __init__(self, repository: StaffRepository):
+        self.repository = repository
+
+    def execute(self, command: UpdateStaffCommand) -> dict:
+        return self.repository.update_staff(command)
+
+
+class DeleteStaffUseCase:
+    def __init__(self, repository: StaffRepository):
+        self.repository = repository
+
+    def execute(self, staff_id: str) -> None:
+        self.repository.delete_staff(staff_id)

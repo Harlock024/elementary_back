@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from grades.application.dto.grade_dto import CreateGradeCommand
+from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 
 
 class GradeRepository(Protocol):
@@ -11,4 +11,10 @@ class GradeRepository(Protocol):
         ...
 
     def create_grade(self, command: CreateGradeCommand) -> dict:
+        ...
+
+    def update_grade(self, command: UpdateGradeCommand) -> dict:
+        ...
+
+    def delete_grade(self, grade_id: int) -> None:
         ...

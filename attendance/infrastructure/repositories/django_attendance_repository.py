@@ -1,6 +1,7 @@
-from attendance.application.dto.attendance_dto import CreateAttendanceCommand
+from attendance.application.dto.attendance_dto import CreateAttendanceCommand, UpdateAttendanceCommand
 from attendance.domain.exceptions.attendance_exceptions import (
     AttendanceAlreadyExistsError,
+    AttendanceNotFoundError,
     ClassRoomNotFoundError,
     StateCodeNotFoundError,
     StudentNotFoundForAttendanceError,
@@ -60,5 +61,20 @@ class DjangoAttendanceRepository:
         )
         attendance.save()
 
+        serializer = AttendanceCreateUpdateSerializer(attendance)
+        return serializer.data
+
+    def update_attendance(self, command: UpdateAttendanceCommand) -> dict:
+        attendance = Attendance.objects.filter(pk=command.attendance_id).first()
+        if attendance is None:
+            raise AttendanceNotFoundError("Attendance record not found")
+
+        if command.state_code_id is not None:
+            state_code = CatalogTypeAtendance.objects.filter(id=command.state_code_id).first()
+            if state_code is None:
+                raise StateCodeNotFoundError("State code does not exist.")
+            attendance.state_code = state_code
+
+        attendance.save()
         serializer = AttendanceCreateUpdateSerializer(attendance)
         return serializer.data

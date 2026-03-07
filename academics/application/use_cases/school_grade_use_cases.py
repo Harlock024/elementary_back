@@ -1,4 +1,4 @@
-from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand
+from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand, UpdateSchoolGradeCommand
 from academics.domain.entities.school_grade_entity import SchoolGradeEntity
 from academics.domain.exceptions.school_grade_exceptions import SchoolGradeNotFoundError
 from academics.domain.repositories.school_grade_repository import SchoolGradeRepository
@@ -30,3 +30,11 @@ class CreateSchoolGradeUseCase:
     def execute(self, command: CreateSchoolGradeCommand) -> dict:
         SchoolGradeEntity(name=command.name)
         return self.repository.create_school_grade(command)
+
+
+class UpdateSchoolGradeUseCase:
+    def __init__(self, repository: SchoolGradeRepository):
+        self.repository = repository
+
+    def execute(self, command: UpdateSchoolGradeCommand) -> dict:
+        return self.repository.update_school_grade(command)

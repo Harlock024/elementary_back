@@ -1,4 +1,4 @@
-from grades.application.dto.grade_dto import CreateGradeCommand
+from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.domain.entities.grade_entity import GradeEntity
 from grades.domain.exceptions.grade_exceptions import GradeNotFoundError
 from grades.domain.repositories.grade_repository import GradeRepository
@@ -37,3 +37,19 @@ class CreateGradeUseCase:
             max_score=command.max_score,
         )
         return self.repository.create_grade(command)
+
+
+class UpdateGradeUseCase:
+    def __init__(self, repository: GradeRepository):
+        self.repository = repository
+
+    def execute(self, command: UpdateGradeCommand) -> dict:
+        return self.repository.update_grade(command)
+
+
+class DeleteGradeUseCase:
+    def __init__(self, repository: GradeRepository):
+        self.repository = repository
+
+    def execute(self, grade_id: int) -> None:
+        self.repository.delete_grade(grade_id)

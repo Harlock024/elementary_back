@@ -3,6 +3,7 @@ from academics.application.use_cases.school_grade_use_cases import (
     GetSchoolGradeUseCase,
     ListSchoolGradesUseCase,
 )
+from academics.application.use_cases.update_school_grade import UpdateSchoolGradeUseCase
 from academics.infrastructure.repositories.django_school_grade_repository import (
     DjangoSchoolGradeRepository,
 )
@@ -18,3 +19,7 @@ def build_get_school_grade_use_case() -> GetSchoolGradeUseCase:
 
 def build_create_school_grade_use_case() -> CreateSchoolGradeUseCase:
     return CreateSchoolGradeUseCase(repository=DjangoSchoolGradeRepository())
+
+
+def build_update_school_grade_use_case() -> UpdateSchoolGradeUseCase:
+    return UpdateSchoolGradeUseCase(repository=DjangoSchoolGradeRepository())

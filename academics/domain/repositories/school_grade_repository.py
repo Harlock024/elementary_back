@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand
+from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand, UpdateSchoolGradeCommand
 
 
 class SchoolGradeRepository(Protocol):
@@ -11,4 +11,7 @@ class SchoolGradeRepository(Protocol):
         ...
 
     def create_school_grade(self, command: CreateSchoolGradeCommand) -> dict:
+        ...
+
+    def update_school_grade(self, command: UpdateSchoolGradeCommand) -> dict:
         ...
