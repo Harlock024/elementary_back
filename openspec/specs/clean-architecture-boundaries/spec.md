@@ -1,8 +1,6 @@
 ## Purpose
 Define boundary rules for incremental migration to clean architecture while preserving externally visible API contracts.
-
 ## Requirements
-
 ### Requirement: Domain layer framework independence
 The system SHALL keep domain entities and domain rules independent from Django, ORM models, serializers, and HTTP concerns.
 
@@ -16,6 +14,14 @@ The system SHALL implement business workflows as explicit application use cases 
 #### Scenario: API operation delegates to use case
 - **WHEN** an API endpoint for a migrated workflow is invoked
 - **THEN** the interface layer delegates orchestration to exactly one application use-case entry point
+
+#### Scenario: All CRUD operations use use cases
+- **WHEN** any CRUD operation (GET, POST, PUT, PATCH, DELETE) is performed on a migrated endpoint
+- **THEN** the operation is handled by a corresponding use case in the application layer
+
+#### Scenario: Write operations use Command DTOs
+- **WHEN** a write operation (POST, PUT, PATCH) is delegated to a use case
+- **THEN** the use case accepts a typed Command DTO as input parameter
 
 ### Requirement: Infrastructure adapters for persistence
 The system SHALL access persistence and external services only through adapters that implement application-defined ports.
@@ -37,3 +43,8 @@ The system SHALL migrate modules incrementally with explicit completion criteria
 #### Scenario: Workflow migration completion gate
 - **WHEN** a workflow migration task is marked as completed
 - **THEN** the workflow has delegated execution to use case layer, has tests for core rules, and legacy duplicated logic has been removed
+
+#### Scenario: Full module migration completion
+- **WHEN** all CRUD operations in a module are migrated
+- **THEN** the module views file contains no direct ORM access for any endpoint operation
+

@@ -3,7 +3,7 @@ from decimal import Decimal
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from grades.application.dto.grade_dto import CreateGradeCommand
+from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.domain.exceptions.grade_exceptions import (
     CatalogTypeNotFoundError,
     ClassRoomNotFoundForGradeError,
@@ -13,11 +13,13 @@ from grades.domain.exceptions.grade_exceptions import (
 )
 from grades.interfaces.http.grade_use_case_factory import (
     build_create_grade_use_case,
+    build_delete_grade_use_case,
     build_get_grade_use_case,
     build_list_grades_use_case,
+    build_update_grade_use_case,
 )
-from .models import StudentGrade,CatalogTypeGrade
-from .serializer import StudentGradeSerializer, CatalogTypeGradeSerializer
+from .models import CatalogTypeGrade
+from .serializer import CatalogTypeGradeSerializer
 
 
 class GradeViewSet(APIView):
@@ -58,32 +60,44 @@ class GradeViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         except StudentNotFoundForGradeError:
-            return Response({"error":"Student not found"},status=404)
+            return Response({"error": "Student not found"}, status=404)
         except ClassRoomNotFoundForGradeError:
-            return Response({"error":"ClassRoom not found"},status=404)
+            return Response({"error": "ClassRoom not found"}, status=404)
         except CatalogTypeNotFoundError:
-            return Response({"error":"Catalog Type not found"},status=404)
+            return Response({"error": "Catalog Type not found"}, status=404)
         except SubjectNotFoundForGradeError:
-            return Response({"error":"Subject not found in the specified ClassRoom"},status=404)
+            return Response({"error": "Subject not found in the specified ClassRoom"}, status=404)
 
     def put(self, request, pk):
         if pk is None:
             return Response({"error": "Grade ID is required for update"}, status=400)
-        data = StudentGrade.objects.get(pk=pk)
-        if data is None:
+
+        update_use_case = build_update_grade_use_case()
+
+        try:
+            score = request.data.get("score")
+            max_score = request.data.get("max_score")
+            command = UpdateGradeCommand(
+                grade_id=pk,
+                score=Decimal(str(score)) if score is not None else None,
+                max_score=Decimal(str(max_score)) if max_score is not None else None,
+                description=request.data.get("description"),
+                type_code_id=str(request.data.get("type_code")) if request.data.get("type_code") else None,
+            )
+            data = update_use_case.execute(command)
+        except GradeNotFoundError:
             return Response({"error": "Grade not found"}, status=404)
-        serializer = StudentGradeSerializer(data, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        return Response(data)
 
     def delete(self, request, pk):
+        delete_use_case = build_delete_grade_use_case()
+
         try:
-            grade = StudentGrade.objects.get(pk=pk)
-        except StudentGrade.DoesNotExist:
+            delete_use_case.execute(pk)
+        except GradeNotFoundError:
             return Response({"error": "Grade not found"}, status=404)
-        grade.delete()
         return Response(status=204)
 
 

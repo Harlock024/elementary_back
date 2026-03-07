@@ -1,21 +1,23 @@
 from datetime import date
 
-from .models import Student
 from rest_framework.response import Response
-from .serializer import StudentSerializer
-from rest_framework.views import  APIView
-from students.application.dto.student_dto import CreateStudentCommand
+from rest_framework.views import APIView
+
+from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
 from students.domain.exceptions.student_exceptions import (
     GroupNotFoundError,
     StudentNotFoundError,
 )
 from students.interfaces.http.student_use_case_factory import (
     build_create_student_use_case,
+    build_delete_student_use_case,
     build_get_student_detail_use_case,
     build_list_students_use_case,
+    build_update_student_use_case,
 )
 
 from elementary_back.middleware import IsAdmin
+
 
 class StudentViewSet(APIView):
     permission_classes = [IsAdmin]
@@ -34,7 +36,6 @@ class StudentViewSet(APIView):
             students = list_students_use_case.execute()
             return Response(students)
 
-# create student with enrollment 
     def post(self, request):
         create_student_use_case = build_create_student_use_case()
 
@@ -68,36 +69,54 @@ class StudentViewSet(APIView):
         return Response(student_data, status=201)
 
     def put(self, request, pk):
-        try:
-            student = Student.objects.get(pk=pk)
-        except Student.DoesNotExist:
-            return Response({"error": "Student not found"}, status=404)
+        update_use_case = build_update_student_use_case()
 
-        serializer = StudentSerializer(student, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        birth_date = request.data.get("date_of_birth")
+        try:
+            command = UpdateStudentCommand(
+                student_id=str(pk),
+                first_name=request.data.get("first_name"),
+                second_name=request.data.get("second_name"),
+                last_name=request.data.get("last_name"),
+                date_of_birth=date.fromisoformat(birth_date) if birth_date else None,
+                gender=request.data.get("gender"),
+                state=request.data.get("state"),
+            )
+            student_data = update_use_case.execute(command)
+        except StudentNotFoundError:
+            return Response({"error": "Student not found"}, status=404)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        return Response(student_data)
 
     def delete(self, request, pk):
-        try:
-            student = Student.objects.get(pk=pk)
-        except Student.DoesNotExist:
-            return Response({"error": "Student not found"}, status=404)
+        delete_use_case = build_delete_student_use_case()
 
-        student.delete()
+        try:
+            delete_use_case.execute(str(pk))
+        except StudentNotFoundError:
+            return Response({"error": "Student not found"}, status=404)
         return Response(status=204)
-    
-    def patch(self, request, pk):
-        try:
-            student = Student.objects.get(pk=pk)
-        except Student.DoesNotExist:
-            return Response({"error": "Student not found"}, status=404)
 
-        serializer = StudentSerializer(student, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+    def patch(self, request, pk):
+        update_use_case = build_update_student_use_case()
+
+        birth_date = request.data.get("date_of_birth")
+        try:
+            command = UpdateStudentCommand(
+                student_id=str(pk),
+                first_name=request.data.get("first_name"),
+                second_name=request.data.get("second_name"),
+                last_name=request.data.get("last_name"),
+                date_of_birth=date.fromisoformat(birth_date) if birth_date else None,
+                gender=request.data.get("gender"),
+                state=request.data.get("state"),
+            )
+            student_data = update_use_case.execute(command)
+        except StudentNotFoundError:
+            return Response({"error": "Student not found"}, status=404)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        return Response(student_data)
 
 

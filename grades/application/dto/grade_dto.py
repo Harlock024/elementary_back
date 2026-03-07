@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -11,3 +12,12 @@ class CreateGradeCommand:
     score: Decimal
     max_score: Decimal
     description: str | None
+
+
+@dataclass(frozen=True)
+class UpdateGradeCommand:
+    grade_id: int
+    score: Optional[Decimal] = None
+    max_score: Optional[Decimal] = None
+    description: Optional[str] = None
+    type_code_id: Optional[str] = None

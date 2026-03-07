@@ -1,17 +1,20 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Staff
 from rest_framework.decorators import api_view
 from .serializer import StaffSerializer
-from staff.application.dto.staff_dto import CreateStaffCommand
+from staff.application.dto.staff_dto import CreateStaffCommand, UpdateStaffCommand
+from staff.domain.exceptions.staff_exceptions import StaffNotFoundError
 from staff.interfaces.http.staff_use_case_factory import (
     build_create_staff_use_case,
+    build_delete_staff_use_case,
     build_list_staff_use_case,
+    build_update_staff_use_case,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import random
 import string
+
 
 class StaffView(APIView):
     def get(self, request):
@@ -35,24 +38,31 @@ class StaffView(APIView):
         return Response(data)
 
     def put(self, request, pk):
+        update_use_case = build_update_staff_use_case()
+
         try:
-            staff = Staff.objects.get(pk=pk)
-        except Staff.DoesNotExist:
-            return Response({'error': 'Staff not found.'}, status=404)
-        serializer = StaffSerializer(staff, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+            command = UpdateStaffCommand(
+                staff_id=str(pk),
+                first_name=request.data.get("first_name"),
+                last_name=request.data.get("last_name"),
+                username=request.data.get("username"),
+                role=request.data.get("role"),
+            )
+            staff_data = update_use_case.execute(command)
+        except StaffNotFoundError:
+            return Response({"error": "Staff not found."}, status=404)
+        except ValueError:
+            return Response({"error": "Invalid request payload"}, status=400)
+        return Response(staff_data)
 
     def delete(self, request, pk):
-        try:
-            staff = Staff.objects.get(pk=pk)
-        except Staff.DoesNotExist:
-            return Response({'error': 'Staff not found.'}, status=404)
-        staff.delete()
-        return Response(status=204)
+        delete_use_case = build_delete_staff_use_case()
 
+        try:
+            delete_use_case.execute(str(pk))
+        except StaffNotFoundError:
+            return Response({"error": "Staff not found."}, status=404)
+        return Response(status=204)
 
 
 class StaffProfileView(APIView):

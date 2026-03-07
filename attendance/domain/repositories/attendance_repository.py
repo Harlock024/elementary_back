@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from attendance.application.dto.attendance_dto import CreateAttendanceCommand
+from attendance.application.dto.attendance_dto import CreateAttendanceCommand, UpdateAttendanceCommand
 
 
 class AttendanceRepository(Protocol):
@@ -13,4 +13,7 @@ class AttendanceRepository(Protocol):
         ...
 
     def create_attendance(self, command: CreateAttendanceCommand) -> dict:
+        ...
+
+    def update_attendance(self, command: UpdateAttendanceCommand) -> dict:
         ...

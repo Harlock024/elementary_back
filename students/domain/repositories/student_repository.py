@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from students.application.dto.student_dto import CreateStudentCommand
+from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
 
 
 class StudentRepository(Protocol):
@@ -11,4 +11,10 @@ class StudentRepository(Protocol):
         ...
 
     def create_student_with_enrollment(self, command: CreateStudentCommand) -> dict:
+        ...
+
+    def update_student(self, command: UpdateStudentCommand) -> dict:
+        ...
+
+    def delete_student(self, student_id: str) -> None:
         ...

@@ -1,8 +1,9 @@
 from academics.models import ClassRoom, Subject
-from grades.application.dto.grade_dto import CreateGradeCommand
+from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.domain.exceptions.grade_exceptions import (
     CatalogTypeNotFoundError,
     ClassRoomNotFoundForGradeError,
+    GradeNotFoundError,
     StudentNotFoundForGradeError,
     SubjectNotFoundForGradeError,
 )
@@ -54,3 +55,28 @@ class DjangoGradeRepository:
         )
         student_grade.save()
         return StudentGradeSerializer(student_grade).data
+
+    def update_grade(self, command: UpdateGradeCommand) -> dict:
+        grade = StudentGrade.objects.filter(pk=command.grade_id).first()
+        if grade is None:
+            raise GradeNotFoundError("Grade not found")
+
+        if command.score is not None:
+            grade.score = command.score
+        if command.max_score is not None:
+            grade.max_score = command.max_score
+        if command.description is not None:
+            grade.description = command.description
+        if command.type_code_id is not None:
+            catalog_type = CatalogTypeGrade.objects.filter(pk=command.type_code_id).first()
+            if catalog_type:
+                grade.type_code = catalog_type
+
+        grade.save()
+        return StudentGradeSerializer(grade).data
+
+    def delete_grade(self, grade_id: int) -> None:
+        grade = StudentGrade.objects.filter(pk=grade_id).first()
+        if grade is None:
+            raise GradeNotFoundError("Grade not found")
+        grade.delete()

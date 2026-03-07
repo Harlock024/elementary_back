@@ -42,3 +42,13 @@ Un workflow migrado se considera completo cuando:
 
 - Estructura y reglas base: `docs/clean-architecture/students-pilot.md`
 - Checklist de revisión: `docs/clean-architecture/review-checklist.md`
+
+## Estado de migración por módulo (marzo 2026)
+
+| Módulo | Estado | Nota |
+| --- | --- | --- |
+| `students` | Parcial-completo | CRUD principal migrado a use cases; quedan validaciones globales de eliminación de ORM directo |
+| `staff` | Parcial-completo | CRUD principal migrado a use cases; endpoints auxiliares legacy (`professors/*`) siguen fuera de scope |
+| `academics` | Parcial | SchoolGrade, Group, Subject, Enrollment y ClassRoom (write-path) migrados; read/create aún con ORM directo en views |
+| `grades` | Parcial-completo | CRUD de `StudentGrade` migrado; `catalog` mantiene flujo legacy |
+| `attendance` | Parcial-completo | `PATCH` migrado a use case; endpoints de catálogo permanecen legacy |
