@@ -10,6 +10,8 @@ from staff.interfaces.http.staff_use_case_factory import (
     build_list_staff_use_case,
     build_update_staff_use_case,
 )
+#hardcode
+from .models import Staff
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import random
@@ -145,24 +147,6 @@ def  delete_professor(request, pk):
     return Response({'message': 'Professor deleted successfully.'})
 
 
-@api_view(['PUT'])
-def update_professor(request, pk):
-    try:
-        professor = Staff.objects.get(pk=pk, role='profesor')
-    except Staff.DoesNotExist:
-        return Response({'error': 'Professor not found.'}, status=404)
-
-    professor.first_name = request.data.get('first_name', professor.first_name)
-    professor.last_name = request.data.get('last_name', professor.last_name)
-    professor.username = request.data.get('username', professor.username)
-    professor.save()
-    serializer = StaffSerializer(professor)
-    return Response(serializer.data)
-
-def generate_random_password(length=10):
-    characters = string.ascii_letters + string.digits + string.punctuation
-    random_password = ''.join(random.choice(characters) for i in range(length))
-    return random_password
 
 @api_view(['POST'])
 def create_admin(request):
@@ -170,8 +154,9 @@ def create_admin(request):
         first_name=request.data.get("first_name"),
         last_name=request.data.get("last_name"),
         username=request.data.get("first_name").lower() + "_admin",
+        role= "admin"
     )
-    admin.is_admin()
+
     admin.set_password(request.data.get("password"))
     admin.save()
     return Response({"message": "Admin user created."})
