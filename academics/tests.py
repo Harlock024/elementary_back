@@ -174,7 +174,7 @@ class AcademicsUseCaseTests(TestCase):
 		use_case = UpdateEnrollmentUseCase(repository=_InMemoryAcademicsRepository())
 
 		with self.assertRaises(EnrollmentNotFoundError):
-			use_case.execute(UpdateEnrollmentCommand(enrollment_id="missing"))
+			use_case.execute(UpdateEnrollmentCommand(enrollment_id="missing", version=1))
 
 
 class AcademicsEndpointsSmokeTests(TestCase):
@@ -237,7 +237,7 @@ class AcademicsEndpointsSmokeTests(TestCase):
 	def test_update_enrollment_endpoint_returns_200(self):
 		response = self.client.put(
 			f"/api/academics/enrollments/{self.enrollment.id}/",
-			{"state": "inactive", "period": "2027"},
+			{"state": "inactive", "period": "2027", "version": self.enrollment.version},
 			format="json",
 		)
 

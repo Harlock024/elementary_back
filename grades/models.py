@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from students.models import Student
 from academics.models import ClassRoom, Subject
@@ -21,6 +22,7 @@ class CatalogTypeGrade(models.Model):
 
 # Calificaciones de los estudiantes
 class StudentGrade(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
         Student,
         on_delete=models.CASCADE, 
@@ -46,6 +48,17 @@ class StudentGrade(models.Model):
     max_score = models.DecimalField(max_digits=5, decimal_places=2)
     date = models.DateField(auto_now_add=True)
     description = models.TextField(blank=True, null=True)
+    syncStatus = models.CharField(
+        max_length=20,
+        choices=(
+            ('synced', 'Synced'),
+            ('pending', 'Pending'),
+            ('conflict', 'Conflict'),
+        ),
+        default='synced',
+    )
+    version = models.IntegerField(default=1)
+    localUpdatedAt = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

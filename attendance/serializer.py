@@ -15,7 +15,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class_id = serializers.PrimaryKeyRelatedField(source='class_room', read_only=True)
     class Meta:
         model = Attendance
-        fields = ['id', 'date', 'class_id', 'student', 'state_code']
+        fields = ['id', 'date', 'class_id', 'student', 'state_code', 'syncStatus', 'version', 'localUpdatedAt']
 
 
 class AttendanceCreateUpdateSerializer(serializers.ModelSerializer):
@@ -23,5 +23,5 @@ class AttendanceCreateUpdateSerializer(serializers.ModelSerializer):
     state_code = AttendanceCatalogSerializer(read_only=True)
     class Meta:
         model = Attendance
-        fields = ['id', 'date', 'class_room', 'student', 'state_code']
+        fields = ['id', 'date', 'class_room', 'student', 'state_code', 'syncStatus', 'version', 'localUpdatedAt']
 

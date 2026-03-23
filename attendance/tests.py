@@ -32,6 +32,7 @@ class AttendanceUseCaseTests(TestCase):
 	def test_create_attendance_validates_required_fields(self):
 		use_case = CreateAttendanceUseCase(repository=_InMemoryAttendanceRepository())
 		command = CreateAttendanceCommand(
+			id=None,
 			student_id="",
 			state_code_id="state",
 			class_id="class",
@@ -124,7 +125,7 @@ class AttendanceEndpointsSmokeTests(TestCase):
 		new_state = CatalogTypeAtendance.objects.create(code="late", description="Late")
 		response = self.client.patch(
 			f"/api/attendances/{create_response.data['id']}/",
-			{"state_code": str(new_state.id)},
+			{"state_code": str(new_state.id), "version": create_response.data["version"]},
 			format="json",
 		)
 

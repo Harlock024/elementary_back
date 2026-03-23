@@ -42,6 +42,7 @@ class GradeUseCaseTests(TestCase):
 	def test_create_grade_validates_required_fields(self):
 		use_case = CreateGradeUseCase(repository=_InMemoryGradeRepository())
 		command = CreateGradeCommand(
+			id=None,
 			student_id="",
 			class_room_id="room",
 			type_code_id="code",
@@ -145,7 +146,7 @@ class GradeEndpointsSmokeTests(TestCase):
 
 		response = self.client.put(
 			f"/api/grades/{create_response.data['id']}/",
-			{"score": "8.5", "max_score": "10", "description": "Updated"},
+			{"score": "8.5", "max_score": "10", "description": "Updated", "version": create_response.data["version"]},
 			format="json",
 		)
 

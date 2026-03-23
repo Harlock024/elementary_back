@@ -8,6 +8,7 @@ from grades.domain.exceptions.grade_exceptions import (
     CatalogTypeNotFoundError,
     ClassRoomNotFoundForGradeError,
     GradeNotFoundError,
+    GradeVersionConflictError,
     StudentNotFoundForGradeError,
     SubjectNotFoundForGradeError,
 )
@@ -47,6 +48,7 @@ class GradeViewSet(APIView):
         use_case = build_create_grade_use_case()
         try:
             command = CreateGradeCommand(
+                id=str(request.data.get("id")) if request.data.get("id") else None,
                 student_id=str(request.data.get("student")),
                 class_room_id=str(request.data.get("class_room")),
                 type_code_id=str(request.data.get("type_code")),
@@ -74,11 +76,16 @@ class GradeViewSet(APIView):
 
         update_use_case = build_update_grade_use_case()
 
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
+
         try:
             score = request.data.get("score")
             max_score = request.data.get("max_score")
             command = UpdateGradeCommand(
-                grade_id=pk,
+                grade_id=str(pk),
+                version=int(request_version),
                 score=Decimal(str(score)) if score is not None else None,
                 max_score=Decimal(str(max_score)) if max_score is not None else None,
                 description=request.data.get("description"),
@@ -87,6 +94,8 @@ class GradeViewSet(APIView):
             data = update_use_case.execute(command)
         except GradeNotFoundError:
             return Response({"error": "Grade not found"}, status=404)
+        except GradeVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)

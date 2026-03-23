@@ -11,9 +11,11 @@ from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand,
 from academics.domain.exceptions.academics_exceptions import (
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
+    EnrollmentVersionConflictError,
     GroupNotFoundError,
     SubjectNotFoundError,
 )
+from django.utils import timezone
 from academics.domain.exceptions.school_grade_exceptions import SchoolGradeNotFoundError
 from academics.interfaces.http.academics_use_case_factory import (
     build_delete_classroom_use_case,
@@ -252,18 +254,45 @@ class EnrollmentViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        serializer = EnrollmentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        student_id = request.data.get("student")
+        group_id = request.data.get("group")
+        period = request.data.get("period")
+
+        if not student_id or not group_id or not period:
+            return Response({"error": "student, group and period are required"}, status=400)
+
+        student = Enrollment._meta.get_field("student").remote_field.model.objects.filter(pk=student_id).first()
+        group = Group.objects.filter(pk=group_id).first()
+
+        if student is None:
+            return Response({"error": "Student not found"}, status=404)
+        if group is None:
+            return Response({"error": "Group not found"}, status=404)
+
+        enrollment = Enrollment(
+            id=str(request.data.get("id")) if request.data.get("id") else None,
+            student=student,
+            group=group,
+            period=period,
+            state=request.data.get("state", "active"),
+            syncStatus='pending',
+            version=1,
+            localUpdatedAt=timezone.now(),
+        )
+        enrollment.save()
+        return Response(EnrollmentSerializer(enrollment).data, status=201)
 
     def put(self, request, pk):
         update_use_case = build_update_enrollment_use_case()
 
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
+
         try:
             command = UpdateEnrollmentCommand(
                 enrollment_id=str(pk),
+                version=int(request_version),
                 student_id=str(request.data.get("student")) if request.data.get("student") else None,
                 group_id=str(request.data.get("group")) if request.data.get("group") else None,
                 period=request.data.get("period"),
@@ -272,6 +301,8 @@ class EnrollmentViewSet(APIView):
             data = update_use_case.execute(command)
         except EnrollmentNotFoundError:
             return Response({"error": "Enrollment not found"}, status=404)
+        except EnrollmentVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
@@ -279,9 +310,14 @@ class EnrollmentViewSet(APIView):
     def patch(self, request, pk):
         update_use_case = build_update_enrollment_use_case()
 
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
+
         try:
             command = UpdateEnrollmentCommand(
                 enrollment_id=str(pk),
+                version=int(request_version),
                 student_id=str(request.data.get("student")) if request.data.get("student") else None,
                 group_id=str(request.data.get("group")) if request.data.get("group") else None,
                 period=request.data.get("period"),
@@ -290,6 +326,8 @@ class EnrollmentViewSet(APIView):
             data = update_use_case.execute(command)
         except EnrollmentNotFoundError:
             return Response({"error": "Enrollment not found"}, status=404)
+        except EnrollmentVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
@@ -307,9 +345,9 @@ class ClassRoomViewSet(APIView):
             serializer = ClassRoomSerializer(classroom)
             return Response(serializer.data)
         else:
-            if staff.role == "Admin":
+            if staff.role == "admin":
                 classrooms = ClassRoom.objects.all()
-            elif staff.role == "Teacher":
+            elif staff.role == "teacher":
                 classrooms = ClassRoom.objects.filter(staff=staff)
             else:
                 return Response(

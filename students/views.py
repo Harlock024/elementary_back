@@ -7,6 +7,7 @@ from students.application.dto.student_dto import CreateStudentCommand, UpdateStu
 from students.domain.exceptions.student_exceptions import (
     GroupNotFoundError,
     StudentNotFoundError,
+    StudentVersionConflictError,
 )
 from students.interfaces.http.student_use_case_factory import (
     build_create_student_use_case,
@@ -52,6 +53,7 @@ class StudentViewSet(APIView):
 
         try:
             command = CreateStudentCommand(
+                id=str(request.data.get("id")) if request.data.get("id") else None,
                 first_name=request.data.get("first_name"),
                 second_name=request.data.get("second_name"),
                 last_name=request.data.get("last_name"),
@@ -72,9 +74,13 @@ class StudentViewSet(APIView):
         update_use_case = build_update_student_use_case()
 
         birth_date = request.data.get("date_of_birth")
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
         try:
             command = UpdateStudentCommand(
                 student_id=str(pk),
+                version=int(request_version),
                 first_name=request.data.get("first_name"),
                 second_name=request.data.get("second_name"),
                 last_name=request.data.get("last_name"),
@@ -85,6 +91,8 @@ class StudentViewSet(APIView):
             student_data = update_use_case.execute(command)
         except StudentNotFoundError:
             return Response({"error": "Student not found"}, status=404)
+        except StudentVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(student_data)
@@ -102,9 +110,13 @@ class StudentViewSet(APIView):
         update_use_case = build_update_student_use_case()
 
         birth_date = request.data.get("date_of_birth")
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
         try:
             command = UpdateStudentCommand(
                 student_id=str(pk),
+                version=int(request_version),
                 first_name=request.data.get("first_name"),
                 second_name=request.data.get("second_name"),
                 last_name=request.data.get("last_name"),
@@ -115,6 +127,8 @@ class StudentViewSet(APIView):
             student_data = update_use_case.execute(command)
         except StudentNotFoundError:
             return Response({"error": "Student not found"}, status=404)
+        except StudentVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(student_data)

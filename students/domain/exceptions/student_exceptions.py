@@ -4,3 +4,7 @@ class StudentNotFoundError(Exception):
 
 class GroupNotFoundError(Exception):
     pass
+
+
+class StudentVersionConflictError(Exception):
+    pass

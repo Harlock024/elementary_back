@@ -5,6 +5,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class CreateGradeCommand:
+    id: str | None
     student_id: str
     class_room_id: str
     type_code_id: str
@@ -16,7 +17,8 @@ class CreateGradeCommand:
 
 @dataclass(frozen=True)
 class UpdateGradeCommand:
-    grade_id: int
+    grade_id: str
+    version: int
     score: Optional[Decimal] = None
     max_score: Optional[Decimal] = None
     description: Optional[str] = None

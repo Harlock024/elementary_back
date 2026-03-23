@@ -16,3 +16,7 @@ class CatalogTypeNotFoundError(Exception):
 
 class SubjectNotFoundForGradeError(Exception):
     pass
+
+
+class GradeVersionConflictError(Exception):
+    pass

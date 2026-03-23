@@ -1,9 +1,12 @@
+from django.utils import timezone
+
 from academics.models import ClassRoom, Subject
 from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.domain.exceptions.grade_exceptions import (
     CatalogTypeNotFoundError,
     ClassRoomNotFoundForGradeError,
     GradeNotFoundError,
+    GradeVersionConflictError,
     StudentNotFoundForGradeError,
     SubjectNotFoundForGradeError,
 )
@@ -45,6 +48,7 @@ class DjangoGradeRepository:
             )
 
         student_grade = StudentGrade(
+            id=command.id if command.id else None,
             student=student,
             subject=subject,
             class_room=class_room,
@@ -52,6 +56,9 @@ class DjangoGradeRepository:
             max_score=command.max_score,
             description=command.description,
             type_code=catalog_type,
+            syncStatus='pending',
+            version=1,
+            localUpdatedAt=timezone.now(),
         )
         student_grade.save()
         return StudentGradeSerializer(student_grade).data
@@ -60,6 +67,9 @@ class DjangoGradeRepository:
         grade = StudentGrade.objects.filter(pk=command.grade_id).first()
         if grade is None:
             raise GradeNotFoundError("Grade not found")
+
+        if command.version != grade.version:
+            raise GradeVersionConflictError("Version conflict")
 
         if command.score is not None:
             grade.score = command.score
@@ -71,6 +81,10 @@ class DjangoGradeRepository:
             catalog_type = CatalogTypeGrade.objects.filter(pk=command.type_code_id).first()
             if catalog_type:
                 grade.type_code = catalog_type
+
+        grade.version += 1
+        grade.syncStatus = 'synced'
+        grade.localUpdatedAt = timezone.now()
 
         grade.save()
         return StudentGradeSerializer(grade).data

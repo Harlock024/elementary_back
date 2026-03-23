@@ -1,7 +1,10 @@
+from django.utils import timezone
+
 from attendance.application.dto.attendance_dto import CreateAttendanceCommand, UpdateAttendanceCommand
 from attendance.domain.exceptions.attendance_exceptions import (
     AttendanceAlreadyExistsError,
     AttendanceNotFoundError,
+    AttendanceVersionConflictError,
     ClassRoomNotFoundError,
     StateCodeNotFoundError,
     StudentNotFoundForAttendanceError,
@@ -54,10 +57,14 @@ class DjangoAttendanceRepository:
             raise ClassRoomNotFoundError("Class room does not exist.")
 
         attendance = Attendance(
+            id=command.id if command.id else None,
             class_room=class_room,
             student=student,
             date=command.attendance_date,
             state_code=state_code,
+            syncStatus='pending',
+            version=1,
+            localUpdatedAt=timezone.now(),
         )
         attendance.save()
 
@@ -69,11 +76,18 @@ class DjangoAttendanceRepository:
         if attendance is None:
             raise AttendanceNotFoundError("Attendance record not found")
 
+        if command.version != attendance.version:
+            raise AttendanceVersionConflictError("Version conflict")
+
         if command.state_code_id is not None:
             state_code = CatalogTypeAtendance.objects.filter(id=command.state_code_id).first()
             if state_code is None:
                 raise StateCodeNotFoundError("State code does not exist.")
             attendance.state_code = state_code
+
+        attendance.version += 1
+        attendance.syncStatus = 'synced'
+        attendance.localUpdatedAt = timezone.now()
 
         attendance.save()
         serializer = AttendanceCreateUpdateSerializer(attendance)

@@ -9,6 +9,7 @@ from attendance.application.dto.attendance_dto import (
 from attendance.domain.exceptions.attendance_exceptions import (
     AttendanceAlreadyExistsError,
     AttendanceNotFoundError,
+    AttendanceVersionConflictError,
     ClassRoomNotFoundError,
     StateCodeNotFoundError,
     StudentNotFoundForAttendanceError,
@@ -50,6 +51,7 @@ class AttendaceView(APIView):
         use_case = build_create_attendance_use_case()
         try:
             command = CreateAttendanceCommand(
+                id=str(request.data.get("id")) if request.data.get("id") else None,
                 student_id=str(student_id),
                 state_code_id=str(state_code_id),
                 class_id=str(class_id),
@@ -72,16 +74,23 @@ class AttendaceView(APIView):
         if not id:
             return Response({"error": "Attendance ID is required"}, status=400)
 
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
+
         update_use_case = build_update_attendance_use_case()
         try:
             command = UpdateAttendanceCommand(
                 attendance_id=str(id),
+                version=int(request_version),
                 state_code_id=str(request.data.get("state_code")) if request.data.get("state_code") else None,
             )
             data = update_use_case.execute(command)
             return Response(data, status=200)
         except AttendanceNotFoundError as exc:
             return Response({"error": str(exc)}, status=404)
+        except AttendanceVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except StateCodeNotFoundError as exc:
             return Response({"error": str(exc)}, status=400)
         except ValueError:

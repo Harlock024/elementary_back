@@ -11,6 +11,9 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'second_name', 'last_name', 
                   'enrollment_number','date_of_birth', 'gender', 
                   'state',
+                  'syncStatus',
+                  'version',
+                  'localUpdatedAt',
                   'enrollments',
                   'created_at', 
                   'updated_at'
@@ -37,5 +40,5 @@ class StudentDetailSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['id', 'first_name', 'second_name', 'last_name', 
                   'enrollment_number','date_of_birth', 'gender',
-                    'state','group','enrollments']
+                                        'state', 'syncStatus', 'version', 'localUpdatedAt', 'group','enrollments']
 

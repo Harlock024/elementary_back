@@ -1,8 +1,16 @@
 from datetime import datetime
 from django.db import models, transaction
 from django.db.models import Max
+from django.utils import timezone
 from academics.models import Group
 import uuid
+
+
+class SyncStatus(models.TextChoices):
+    SYNCED = 'synced', 'Synced'
+    PENDING = 'pending', 'Pending'
+    CONFLICT = 'conflict', 'Conflict'
+
 
 class Student(models.Model):
     id =  models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -12,7 +20,10 @@ class Student(models.Model):
     enrollment_number = models.CharField(max_length=20, unique=True)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10)
-    state = models.CharField(max_length=30) 
+    state = models.CharField(max_length=30)
+    syncStatus = models.CharField(max_length=20, choices=SyncStatus.choices, default=SyncStatus.SYNCED)
+    version = models.IntegerField(default=1)
+    localUpdatedAt = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

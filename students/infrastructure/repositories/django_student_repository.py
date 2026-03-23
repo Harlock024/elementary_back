@@ -1,8 +1,13 @@
 from django.db import transaction
+from django.utils import timezone
 
 from academics.models import Enrollment, Group
 from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
-from students.domain.exceptions.student_exceptions import GroupNotFoundError, StudentNotFoundError
+from students.domain.exceptions.student_exceptions import (
+    GroupNotFoundError,
+    StudentNotFoundError,
+    StudentVersionConflictError,
+)
 from students.models import Student
 from students.serializer import StudentDetailSerializer, StudentSerializer
 
@@ -25,12 +30,16 @@ class DjangoStudentRepository:
 
         with transaction.atomic():
             student = Student(
+                id=command.id if command.id else None,
                 first_name=command.first_name,
                 second_name=command.second_name,
                 last_name=command.last_name,
                 date_of_birth=command.date_of_birth,
                 gender=command.gender,
                 state=command.state,
+                syncStatus='pending',
+                version=1,
+                localUpdatedAt=timezone.now(),
             )
             student.enrollment_number = Student.generate_enrollment_number()
             student.save()
@@ -40,6 +49,9 @@ class DjangoStudentRepository:
                 group=group,
                 period=command.period,
                 state="active",
+                syncStatus='pending',
+                version=1,
+                localUpdatedAt=timezone.now(),
             )
             enrollment.save()
 
@@ -49,6 +61,9 @@ class DjangoStudentRepository:
         student = Student.objects.filter(pk=command.student_id).first()
         if student is None:
             raise StudentNotFoundError("Student not found")
+
+        if command.version != student.version:
+            raise StudentVersionConflictError("Version conflict")
 
         if command.first_name is not None:
             student.first_name = command.first_name
@@ -62,6 +77,10 @@ class DjangoStudentRepository:
             student.gender = command.gender
         if command.state is not None:
             student.state = command.state
+
+        student.version += 1
+        student.syncStatus = 'synced'
+        student.localUpdatedAt = timezone.now()
 
         student.save()
         return StudentSerializer(student).data

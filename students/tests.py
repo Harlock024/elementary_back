@@ -60,6 +60,7 @@ class StudentUseCaseTests(TestCase):
 	def test_create_student_validates_required_fields(self):
 		use_case = CreateStudentWithEnrollmentUseCase(repository=_InMemoryStudentRepository())
 		command = CreateStudentCommand(
+			id=None,
 			first_name="",
 			second_name=None,
 			last_name="Perez",
@@ -146,7 +147,7 @@ class StudentEndpointsSmokeTests(TestCase):
 
 		response = self.client.put(
 			f"/api/students/{student.id}/",
-			{"first_name": "Pablo-Updated", "last_name": "Rios", "gender": "M", "state": "active"},
+			{"first_name": "Pablo-Updated", "last_name": "Rios", "gender": "M", "state": "active", "version": student.version},
 			format="json",
 		)
 
@@ -166,7 +167,7 @@ class StudentEndpointsSmokeTests(TestCase):
 
 		response = self.client.patch(
 			f"/api/students/{student.id}/",
-			{"first_name": "Julia2"},
+			{"first_name": "Julia2", "version": student.version},
 			format="json",
 		)
 

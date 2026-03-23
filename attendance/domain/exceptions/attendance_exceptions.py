@@ -16,3 +16,7 @@ class StateCodeNotFoundError(Exception):
 
 class ClassRoomNotFoundError(Exception):
     pass
+
+
+class AttendanceVersionConflictError(Exception):
+    pass

@@ -9,12 +9,12 @@ from academics.models import Group
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = ['id','period', 'state']
+        fields = ['id','period', 'state', 'syncStatus', 'version', 'localUpdatedAt']
 
 class EnrollmentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = ['id', 'group', 'period', 'state', 'created_at', 'updated_at']
+        fields = ['id', 'group', 'period', 'state', 'syncStatus', 'version', 'localUpdatedAt', 'created_at', 'updated_at']
 
 class SchoolGradeSerializer(serializers.ModelSerializer):
     class Meta:

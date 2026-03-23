@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from academics.application.dto.academics_dto import (
     UpdateClassRoomCommand,
     UpdateEnrollmentCommand,
@@ -7,6 +9,7 @@ from academics.application.dto.academics_dto import (
 from academics.domain.exceptions.academics_exceptions import (
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
+    EnrollmentVersionConflictError,
     GroupNotFoundError,
     SubjectNotFoundError,
 )
@@ -129,6 +132,9 @@ class DjangoEnrollmentRepository:
         if enrollment is None:
             raise EnrollmentNotFoundError("Enrollment not found")
 
+        if command.version != enrollment.version:
+            raise EnrollmentVersionConflictError("Version conflict")
+
         if command.student_id is not None:
             from students.models import Student
             student = Student.objects.filter(pk=command.student_id).first()
@@ -142,6 +148,10 @@ class DjangoEnrollmentRepository:
             enrollment.period = command.period
         if command.state is not None:
             enrollment.state = command.state
+
+        enrollment.version += 1
+        enrollment.syncStatus = 'synced'
+        enrollment.localUpdatedAt = timezone.now()
 
         enrollment.save()
         return EnrollmentSerializer(enrollment).data

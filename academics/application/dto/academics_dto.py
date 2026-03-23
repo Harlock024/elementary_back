@@ -27,6 +27,7 @@ class UpdateClassRoomCommand:
 @dataclass(frozen=True)
 class UpdateEnrollmentCommand:
     enrollment_id: str
+    version: int
     student_id: Optional[str] = None
     group_id: Optional[str] = None
     period: Optional[str] = None

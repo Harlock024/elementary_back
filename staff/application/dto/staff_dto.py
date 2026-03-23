@@ -4,6 +4,7 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class CreateStaffCommand:
+    id: str | None
     first_name: str
     last_name: str
 
@@ -11,6 +12,7 @@ class CreateStaffCommand:
 @dataclass(frozen=True)
 class UpdateStaffCommand:
     staff_id: str
+    version: int
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     username: Optional[str] = None

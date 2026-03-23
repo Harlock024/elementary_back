@@ -1,8 +1,9 @@
 import random
 import string
+from django.utils import timezone
 
 from staff.application.dto.staff_dto import CreateStaffCommand, UpdateStaffCommand
-from staff.domain.exceptions.staff_exceptions import StaffNotFoundError
+from staff.domain.exceptions.staff_exceptions import StaffNotFoundError, StaffVersionConflictError
 from staff.models import Staff
 from staff.serializer import StaffSerializer
 
@@ -19,9 +20,13 @@ class DjangoStaffRepository:
 
     def create_staff(self, command: CreateStaffCommand) -> dict:
         profesor = Staff(
+            id=command.id if command.id else None,
             first_name=command.first_name,
             last_name=command.last_name,
             username=f"{command.first_name.lower()}_{command.last_name.lower()}",
+            syncStatus='pending',
+            version=1,
+            localUpdatedAt=timezone.now(),
         )
 
         random_password = generate_random_password()
@@ -36,6 +41,9 @@ class DjangoStaffRepository:
         if staff is None:
             raise StaffNotFoundError("Staff not found")
 
+        if command.version != staff.version:
+            raise StaffVersionConflictError("Version conflict")
+
         if command.first_name is not None:
             staff.first_name = command.first_name
         if command.last_name is not None:
@@ -44,6 +52,10 @@ class DjangoStaffRepository:
             staff.username = command.username
         if command.role is not None:
             staff.role = command.role
+
+        staff.version += 1
+        staff.syncStatus = 'synced'
+        staff.localUpdatedAt = timezone.now()
 
         staff.save()
         return StaffSerializer(staff).data

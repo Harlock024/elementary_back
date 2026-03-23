@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from .serializer import StaffSerializer
 from staff.application.dto.staff_dto import CreateStaffCommand, UpdateStaffCommand
-from staff.domain.exceptions.staff_exceptions import StaffNotFoundError
+from staff.domain.exceptions.staff_exceptions import StaffNotFoundError, StaffVersionConflictError
 from staff.interfaces.http.staff_use_case_factory import (
     build_create_staff_use_case,
     build_delete_staff_use_case,
@@ -30,7 +30,11 @@ class StaffView(APIView):
             return Response({"error": "first_name and last_name are required"}, status=400)
 
         use_case = build_create_staff_use_case()
-        command = CreateStaffCommand(first_name=first_name, last_name=last_name)
+        command = CreateStaffCommand(
+            id=str(request.data.get("id")) if request.data.get("id") else None,
+            first_name=first_name,
+            last_name=last_name,
+        )
 
         try:
             data = use_case.execute(command)
@@ -41,10 +45,14 @@ class StaffView(APIView):
 
     def put(self, request, pk):
         update_use_case = build_update_staff_use_case()
+        request_version = request.data.get("version")
+        if request_version is None:
+            return Response({"error": "version is required"}, status=400)
 
         try:
             command = UpdateStaffCommand(
                 staff_id=str(pk),
+                version=int(request_version),
                 first_name=request.data.get("first_name"),
                 last_name=request.data.get("last_name"),
                 username=request.data.get("username"),
@@ -53,6 +61,8 @@ class StaffView(APIView):
             staff_data = update_use_case.execute(command)
         except StaffNotFoundError:
             return Response({"error": "Staff not found."}, status=404)
+        except StaffVersionConflictError:
+            return Response({"error": "Version conflict", "syncStatus": "conflict"}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(staff_data)

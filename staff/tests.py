@@ -37,7 +37,7 @@ class _InMemoryStaffRepository:
 class StaffUseCaseTests(TestCase):
 	def test_create_staff_validates_required_fields(self):
 		use_case = CreateStaffUseCase(repository=_InMemoryStaffRepository())
-		command = CreateStaffCommand(first_name="", last_name="Ramos")
+		command = CreateStaffCommand(id=None, first_name="", last_name="Ramos")
 
 		with self.assertRaises(ValueError):
 			use_case.execute(command)
@@ -94,7 +94,7 @@ class StaffEndpointsSmokeTests(TestCase):
 
 		response = self.client.put(
 			f"/api/staff/{staff.id}/",
-			{"first_name": "Erika2", "last_name": "Ramos"},
+			{"first_name": "Erika2", "last_name": "Ramos", "version": staff.version},
 			format="json",
 		)
 
