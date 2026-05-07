@@ -7,18 +7,16 @@ from academics.serializer import EnrollmentSerializer, SubjectNameOnlySerializer
 from students.serializer import StudentSerializerNameOnly
 
 
-
-
-class CatalogTypeGradeSerializer(serializers.ModelSerializer):
+class GradingCriteriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = CatalogTypeGrade
-        fields = ['id', 'code', 'description']
+        fields = ['id', 'name', 'percentage', 'created_at', 'updated_at']   
+
 
 class StudentGradeSerializer(serializers.ModelSerializer):
     subject = SubjectSerializer(read_only=True)
     student = StudentSerializerNameOnly(read_only=True)
     class_id = serializers.PrimaryKeyRelatedField(source='class_room',read_only=True)
-    type_code = CatalogTypeGradeSerializer(read_only=True)
 
     # Extra fields to write the related objects by their IDs
     class_room = serializers.PrimaryKeyRelatedField(
