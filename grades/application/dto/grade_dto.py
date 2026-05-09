@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -7,10 +8,10 @@ from typing import Optional
 class CreateGradeCommand:
     student_id: str
     class_room_id: str
-    type_code_id: str
+    assignment_id: str
     subject_id: str
     score: Decimal
-    max_score: Decimal
+    date: date
     description: str | None
 
 
@@ -18,6 +19,4 @@ class CreateGradeCommand:
 class UpdateGradeCommand:
     grade_id: int
     score: Optional[Decimal] = None
-    max_score: Optional[Decimal] = None
     description: Optional[str] = None
-    type_code_id: Optional[str] = None

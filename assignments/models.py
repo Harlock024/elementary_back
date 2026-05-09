@@ -14,7 +14,7 @@ class Assignment(models.Model):
         related_name='assignments'
     )
     grading_criteria = models.ForeignKey(
-        'grades.CatalogTypeGrade',
+        'grades.GradingCriteria',
         on_delete=models.CASCADE,
         related_name='assignments'
     )

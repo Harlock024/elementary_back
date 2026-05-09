@@ -1,23 +1,24 @@
 from academics.models import ClassRoom, Subject
+from assignments.models import Assignment
 from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.domain.exceptions.grade_exceptions import (
-    CatalogTypeNotFoundError,
+    AssignmentNotFoundForGradeError,
     ClassRoomNotFoundForGradeError,
     GradeNotFoundError,
     StudentNotFoundForGradeError,
     SubjectNotFoundForGradeError,
 )
-from grades.models import CatalogTypeGrade, StudentGrade
+from grades.models import StudentGrade
 from grades.serializer import StudentGradeSerializer
 from students.models import Student
 
 
 class DjangoGradeRepository:
     def list_grades(self, class_room_id: str | None = None) -> list[dict]:
-        queryset = StudentGrade.objects.all()
+        qs = StudentGrade.objects.select_related('student', 'subject', 'class_room', 'assignment')
         if class_room_id:
-            queryset = queryset.filter(class_room__id=class_room_id)
-        return StudentGradeSerializer(queryset, many=True).data
+            qs = qs.filter(class_room_id=class_room_id)
+        return StudentGradeSerializer(qs, many=True).data
 
     def get_grade(self, grade_id: int) -> dict | None:
         grade = StudentGrade.objects.filter(pk=grade_id).first()
@@ -34,24 +35,22 @@ class DjangoGradeRepository:
         if class_room is None:
             raise ClassRoomNotFoundForGradeError("ClassRoom not found")
 
-        catalog_type = CatalogTypeGrade.objects.filter(pk=command.type_code_id).first()
-        if catalog_type is None:
-            raise CatalogTypeNotFoundError("Catalog Type not found")
+        assignment = Assignment.objects.filter(pk=command.assignment_id).first()
+        if assignment is None:
+            raise AssignmentNotFoundForGradeError("Assignment not found")
 
         subject = Subject.objects.filter(pk=command.subject_id).first()
         if subject is None:
-            raise SubjectNotFoundForGradeError(
-                "Subject not found in the specified ClassRoom"
-            )
+            raise SubjectNotFoundForGradeError("Subject not found")
 
         student_grade = StudentGrade(
             student=student,
             subject=subject,
             class_room=class_room,
+            assignment=assignment,
             score=command.score,
-            max_score=command.max_score,
             description=command.description,
-            type_code=catalog_type,
+            date=command.date,
         )
         student_grade.save()
         return StudentGradeSerializer(student_grade).data
@@ -63,14 +62,8 @@ class DjangoGradeRepository:
 
         if command.score is not None:
             grade.score = command.score
-        if command.max_score is not None:
-            grade.max_score = command.max_score
         if command.description is not None:
             grade.description = command.description
-        if command.type_code_id is not None:
-            catalog_type = CatalogTypeGrade.objects.filter(pk=command.type_code_id).first()
-            if catalog_type:
-                grade.type_code = catalog_type
 
         grade.save()
         return StudentGradeSerializer(grade).data

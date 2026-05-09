@@ -8,6 +8,10 @@ class CreateStudentCommand:
     first_name: str
     second_name: str | None
     last_name: str
+    curp: str
+    tutor_name: str
+    tutor_phone: str
+    tutor_relationship: str
     date_of_birth: date
     gender: str
     state: str
@@ -21,6 +25,10 @@ class UpdateStudentCommand:
     first_name: Optional[str] = None
     second_name: Optional[str] = None
     last_name: Optional[str] = None
+    curp: Optional[str] = None
+    tutor_name: Optional[str] = None
+    tutor_phone: Optional[str] = None
+    tutor_relationship: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     state: Optional[str] = None

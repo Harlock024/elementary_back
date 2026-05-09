@@ -7,13 +7,14 @@ from typing import Optional
 class CreateGradingCriteriaCommand:
     name: str
     class_room_id: str
-    subject_id: str
     percentage: Decimal
+    is_attendance_based: bool = False
+
 
 @dataclass(frozen=True)
 class UpdateGradingCriteriaCommand:
     grading_criteria_id: str
     name: Optional[str] = None
     class_room_id: Optional[str] = None
-    subject_id: Optional[str] = None
     percentage: Optional[Decimal] = None
+    is_attendance_based: Optional[bool] = None

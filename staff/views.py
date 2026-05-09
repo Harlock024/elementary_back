@@ -18,6 +18,11 @@ import random
 import string
 
 
+def generate_random_password(length: int = 10) -> str:
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choices(chars, k=length))
+
+
 class StaffView(APIView):
     def get(self, request):
         use_case = build_list_staff_use_case()
@@ -150,16 +155,23 @@ def  delete_professor(request, pk):
 
 @api_view(['POST'])
 def create_admin(request):
-    admin = Staff(
-        first_name=request.data.get("first_name"),
-        last_name=request.data.get("last_name"),
-        username=request.data.get("first_name").lower() + "_admin",
-        role= "admin"
-    )
+    first_name = request.data.get("first_name")
+    last_name = request.data.get("last_name")
+    password = request.data.get("password")
 
-    admin.set_password(request.data.get("password"))
+    if not first_name or not last_name or not password:
+        return Response({"error": "first_name, last_name and password are required"}, status=400)
+
+    admin = Staff(
+        first_name=first_name,
+        last_name=last_name,
+        username=first_name.lower() + "_admin",
+        role="Admin",
+    )
+    admin.set_password(password)
     admin.save()
-    return Response({"message": "Admin user created."})
+    serializer = StaffSerializer(admin)
+    return Response(serializer.data, status=201)
 
 
 @api_view(['PATCH'])

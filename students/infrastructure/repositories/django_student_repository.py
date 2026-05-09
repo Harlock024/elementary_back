@@ -28,6 +28,10 @@ class DjangoStudentRepository:
                 first_name=command.first_name,
                 second_name=command.second_name,
                 last_name=command.last_name,
+                curp=command.curp,
+                tutor_name=command.tutor_name,
+                tutor_phone=command.tutor_phone,
+                tutor_relationship=command.tutor_relationship,
                 date_of_birth=command.date_of_birth,
                 gender=command.gender,
                 state=command.state,
@@ -56,6 +60,14 @@ class DjangoStudentRepository:
             student.second_name = command.second_name
         if command.last_name is not None:
             student.last_name = command.last_name
+        if command.curp is not None:
+            student.curp = command.curp
+        if command.tutor_name is not None:
+            student.tutor_name = command.tutor_name
+        if command.tutor_phone is not None:
+            student.tutor_phone = command.tutor_phone
+        if command.tutor_relationship is not None:
+            student.tutor_relationship = command.tutor_relationship
         if command.date_of_birth is not None:
             student.date_of_birth = command.date_of_birth
         if command.gender is not None:

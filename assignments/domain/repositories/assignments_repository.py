@@ -3,7 +3,7 @@ from typing import Protocol
 from assignments.application.dtos.assignments_dto import CreateAssignmentCommand, UpdateAssignmentCommand
 
 
-class AttendanceRepository(Protocol):
+class AssignmentRepository(Protocol):
     def list_assignments(
         self,
         class_id: str | None = None,

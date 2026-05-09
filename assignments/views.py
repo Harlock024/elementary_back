@@ -1,27 +1,23 @@
 from datetime import datetime
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-
-from assignments.application.dtos.assignments_dto import (CreateAssignmentCommand, UpdateAssignmentCommand )
-
-
-from assignments.domain.exceptions.assignments_exception import (
-    AssigmentsAlreadyExistsException,
-    AssigmentsNotFoundException,
-    StudentNotFoundForAssignmentsError,
-    ClassRoomNotFoundError,
-  
+from assignments.application.dtos.assignments_dto import (
+    CreateAssignmentCommand,
+    UpdateAssignmentCommand,
 )
-
+from assignments.domain.exceptions.assignments_exception import (
+    AssignmentsAlreadyExistsError,
+    AssignmentsNotFoundError,
+    ClassRoomNotFoundError,
+    StudentNotFoundForAssignmentsError,
+)
 from assignments.interfaces.http.assignment_use_case_factory import (
     build_create_assignment_use_case,
     build_list_assignments_use_case,
     build_update_assignment_use_case,
 )
-
-from attendance.models import CatalogTypeAtendance
 
 # Create your views here.
 
@@ -46,9 +42,18 @@ class AssignmentView(APIView):
         due_date = request.data.get("due_date")
         max_score = request.data.get("max_score")
 
-        if not subject_id or not grading_criteria_id or not title or not description or not due_date or not max_score:
+        if (
+            not subject_id
+            or not grading_criteria_id
+            or not title
+            or not description
+            or not due_date
+            or not max_score
+        ):
             return Response(
-                {"error": "subject_id, grading_criteria_id, title, description, due_date and max_score are required"},
+                {
+                    "error": "subject_id, grading_criteria_id, title, description, due_date and max_score are required"
+                },
                 status=400,
             )
 
@@ -67,13 +72,12 @@ class AssignmentView(APIView):
             return Response(data, status=201)
         except ValueError:
             return Response({"error": "Invalid date format for due_date"}, status=400)
-        except AssigmentsAlreadyExistsException as exc:
+        except AssignmentsAlreadyExistsError as exc:
             return Response({"error": str(exc)}, status=400)
         except StudentNotFoundForAssignmentsError as exc:
             return Response({"error": str(exc)}, status=400)
         except ClassRoomNotFoundError as exc:
             return Response({"error": str(exc)}, status=400)
-        
 
     def patch(self, request, id=None):
         if not id:
@@ -91,7 +95,9 @@ class AssignmentView(APIView):
             command = UpdateAssignmentCommand(
                 assignment_id=str(id),
                 subject_id=str(subject_id) if subject_id else None,
-                grading_criteria_id=str(grading_criteria_id) if grading_criteria_id else None,
+                grading_criteria_id=str(grading_criteria_id)
+                if grading_criteria_id
+                else None,
                 title=title if title else None,
                 description=description if description else None,
                 due_date=datetime.fromisoformat(due_date) if due_date else None,
@@ -101,9 +107,9 @@ class AssignmentView(APIView):
             return Response(data, status=200)
         except ValueError:
             return Response({"error": "Invalid date format for due_date"}, status=400)
-        except AssigmentsNotFoundException as exc:
+        except AssignmentsNotFoundError as exc:
             return Response({"error": str(exc)}, status=404)
         except StudentNotFoundForAssignmentsError as exc:
             return Response({"error": str(exc)}, status=400)
         except ClassRoomNotFoundError as exc:
-            return Response({"error": str(exc)}, status=400)    
+            return Response({"error": str(exc)}, status=400)

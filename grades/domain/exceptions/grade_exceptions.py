@@ -10,9 +10,9 @@ class ClassRoomNotFoundForGradeError(Exception):
     pass
 
 
-class CatalogTypeNotFoundError(Exception):
+class SubjectNotFoundForGradeError(Exception):
     pass
 
 
-class SubjectNotFoundForGradeError(Exception):
+class AssignmentNotFoundForGradeError(Exception):
     pass

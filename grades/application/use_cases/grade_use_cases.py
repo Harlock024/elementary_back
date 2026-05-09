@@ -31,10 +31,9 @@ class CreateGradeUseCase:
         GradeEntity(
             student_id=command.student_id,
             class_room_id=command.class_room_id,
-            type_code_id=command.type_code_id,
+            assignment_id=command.assignment_id,
             subject_id=command.subject_id,
             score=command.score,
-            max_score=command.max_score,
         )
         return self.repository.create_grade(command)
 
