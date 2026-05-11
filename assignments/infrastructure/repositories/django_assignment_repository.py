@@ -37,10 +37,11 @@ class DjangoAssignmentRepository:
             due_date=command.due_date,
             max_score=command.max_score,
         )
+        assignment = Assignment.objects.select_related("subject", "grading_criteria").get(pk=assignment.pk)
         return self._to_dict(assignment)
 
     def update_assignment(self, command: UpdateAssignmentCommand) -> dict:
-        assignment = Assignment.objects.filter(pk=command.assignment_id).first()
+        assignment = Assignment.objects.select_related("subject", "grading_criteria").filter(pk=command.assignment_id).first()
         if assignment is None:
             raise AssignmentsNotFoundError("Assignment not found")
 
@@ -67,11 +68,21 @@ class DjangoAssignmentRepository:
         assignment.delete()
 
     def _to_dict(self, assignment: Assignment) -> dict:
+        subject = assignment.subject
+        grading_criteria = assignment.grading_criteria
         return {
             "id": str(assignment.id),
             "class_room_id": str(assignment.class_room_id),
-            "subject_id": str(assignment.subject_id),
+            "subject": {
+                "id": str(subject.id),
+                "name": subject.name,
+            } if subject else None,
             "grading_criteria_id": str(assignment.grading_criteria_id),
+            "grading_criteria": {
+                "id": str(grading_criteria.id),
+                "name": grading_criteria.name,
+                "percentage": float(grading_criteria.percentage),
+            } if grading_criteria else None,
             "title": assignment.title,
             "description": assignment.description,
             "due_date": str(assignment.due_date),

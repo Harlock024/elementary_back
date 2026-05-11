@@ -29,7 +29,7 @@ class AssignmentView(APIView):
             class_id=str(class_id) if class_id else None,
             student_id=str(student_id) if student_id else None,
         )
-        return Response(assignment_data)
+        return Response(assignment_data, status=200)
 
     def post(self, request, class_id=None):
         if not class_id:
@@ -37,6 +37,7 @@ class AssignmentView(APIView):
 
         subject_id = request.data.get("subject_id")
         grading_criteria_id = request.data.get("grading_criteria_id")
+        print(grading_criteria_id)
         title = request.data.get("title")
         description = request.data.get("description")
         due_date = request.data.get("due_date")
@@ -46,17 +47,15 @@ class AssignmentView(APIView):
             not subject_id
             or not grading_criteria_id
             or not title
-            or not description
             or not due_date
             or not max_score
         ):
             return Response(
                 {
-                    "error": "subject_id, grading_criteria_id, title, description, due_date and max_score are required"
+                    "error": "subject_id  , grading_criteria_id, title, due_date and max_score are required"
                 },
                 status=400,
             )
-
         use_case = build_create_assignment_use_case()
         try:
             command = CreateAssignmentCommand(
