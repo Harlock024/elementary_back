@@ -163,9 +163,7 @@ class GroupViewSet(APIView):
         return Response(data)
 
 
-class SubjectViewSet(APIView):
-    permission_classes = [IsAdmin]
-
+class SubjectViewSet(APIView):    
     def get(self, request, pk=None, class_id=None):
         if pk:
             try:
