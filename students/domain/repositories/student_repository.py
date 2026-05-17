@@ -6,7 +6,9 @@ from students.application.dto.student_dto import CreateStudentCommand, UpdateStu
 class StudentRepository(Protocol):
     def list_students_detail(self) -> list[dict]:
         ...
-
+    def list_students_by_group(self, group_id: str) -> list[dict]:
+        ...
+    
     def get_student_detail(self, student_id: str) -> dict | None:
         ...
 

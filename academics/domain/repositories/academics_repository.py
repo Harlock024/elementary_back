@@ -17,6 +17,9 @@ class GroupRepository(Protocol):
 
     def update_group(self, command: UpdateGroupCommand) -> dict:
         ...
+    def delete_group(self, group_id: str) -> None:
+        ...
+
 
 
 class SubjectRepository(Protocol):
@@ -28,6 +31,9 @@ class SubjectRepository(Protocol):
 
     def update_subject(self, command: UpdateSubjectCommand) -> dict:
         ...
+    def delete_subject(self, subject_id: str) -> None:
+        ...
+
 
 
 class ClassRoomRepository(Protocol):
@@ -52,4 +58,7 @@ class EnrollmentRepository(Protocol):
         ...
 
     def update_enrollment(self, command: UpdateEnrollmentCommand) -> dict:
+        ...
+    
+    def delete_enrollment(self, enrollment_id: str) -> None:
         ...

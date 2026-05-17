@@ -16,7 +16,6 @@ class UpdateSubjectCommand:
     description: Optional[str] = None
     school_grade_id: Optional[str] = None
 
-
 @dataclass(frozen=True)
 class UpdateClassRoomCommand:
     classroom_id: str

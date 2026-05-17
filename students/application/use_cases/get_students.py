@@ -8,6 +8,13 @@ class ListStudentsUseCase:
 
     def execute(self) -> list[dict]:
         return self.repository.list_students_detail()
+    
+class ListStudentsByGroupUseCase:
+    def __init__(self, repository: StudentRepository):
+        self.repository = repository
+
+    def execute(self, group_id: str) -> list[dict]:
+        return self.repository.list_students_by_group(group_id)
 
 
 class GetStudentDetailUseCase:

@@ -45,6 +45,12 @@ class DjangoGroupRepository:
 
         group.save()
         return GroupSerializer(group).data
+    
+    def delete_group(self, group_id: str) -> None:
+        group = Group.objects.filter(pk=group_id).first()
+        if group is None:
+            raise GroupNotFoundError("Group not found")
+        group.delete()
 
 
 class DjangoSubjectRepository:
@@ -76,6 +82,11 @@ class DjangoSubjectRepository:
         subject.save()
         return SubjectSerializer(subject).data
 
+    def delete_subject(self, subject_id: str) -> None:
+        subject = Subject.objects.filter(pk=subject_id).first()
+        if subject is None:
+            raise SubjectNotFoundError("Subject not found")
+        subject.delete()
 
 class DjangoClassRoomRepository:
     def list_classrooms(self) -> list[dict]:
@@ -145,3 +156,9 @@ class DjangoEnrollmentRepository:
 
         enrollment.save()
         return EnrollmentSerializer(enrollment).data
+    
+    def delete_enrollment(self, enrollment_id: str) -> None:
+        enrollment = Enrollment.objects.filter(pk=enrollment_id).first()
+        if enrollment is None:
+            raise EnrollmentNotFoundError("Enrollment not found")
+        enrollment.delete()

@@ -3,6 +3,7 @@ from students.application.use_cases.delete_student import DeleteStudentUseCase
 from students.application.use_cases.get_students import (
     GetStudentDetailUseCase,
     ListStudentsUseCase,
+    ListStudentsByGroupUseCase,
 )
 from students.application.use_cases.update_student import UpdateStudentUseCase
 from students.infrastructure.repositories.django_student_repository import DjangoStudentRepository
@@ -11,6 +12,8 @@ from students.infrastructure.repositories.django_student_repository import Djang
 def build_list_students_use_case() -> ListStudentsUseCase:
     return ListStudentsUseCase(repository=DjangoStudentRepository())
 
+def build_list_students_by_group_use_case() -> ListStudentsByGroupUseCase:
+    return ListStudentsByGroupUseCase(repository=DjangoStudentRepository())
 
 def build_get_student_detail_use_case() -> GetStudentDetailUseCase:
     return GetStudentDetailUseCase(repository=DjangoStudentRepository())

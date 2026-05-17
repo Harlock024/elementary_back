@@ -7,7 +7,10 @@ from academics.application.dto.academics_dto import (
     UpdateGroupCommand,
     UpdateSubjectCommand,
 )
-from academics.application.dto.school_grade_dto import CreateSchoolGradeCommand, UpdateSchoolGradeCommand
+from academics.application.dto.school_grade_dto import (
+    CreateSchoolGradeCommand,
+    UpdateSchoolGradeCommand,
+)
 from academics.domain.exceptions.academics_exceptions import (
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
@@ -19,8 +22,11 @@ from academics.interfaces.http.academics_use_case_factory import (
     build_delete_classroom_use_case,
     build_update_classroom_use_case,
     build_update_enrollment_use_case,
+    build_delete_enrollment_use_case,
     build_update_group_use_case,
+    build_delete_group_use_case,
     build_update_subject_use_case,
+    build_delete_subject_use_case,
 )
 from academics.interfaces.http.school_grade_use_case_factory import (
     build_create_school_grade_use_case,
@@ -137,7 +143,9 @@ class GroupViewSet(APIView):
             command = UpdateGroupCommand(
                 group_id=str(pk),
                 letter=request.data.get("letter"),
-                school_grade_id=str(request.data.get("school_grade")) if request.data.get("school_grade") else None,
+                school_grade_id=str(request.data.get("school_grade"))
+                if request.data.get("school_grade")
+                else None,
             )
             data = update_use_case.execute(command)
         except GroupNotFoundError:
@@ -153,7 +161,9 @@ class GroupViewSet(APIView):
             command = UpdateGroupCommand(
                 group_id=str(pk),
                 letter=request.data.get("letter"),
-                school_grade_id=str(request.data.get("school_grade")) if request.data.get("school_grade") else None,
+                school_grade_id=str(request.data.get("school_grade"))
+                if request.data.get("school_grade")
+                else None,
             )
             data = update_use_case.execute(command)
         except GroupNotFoundError:
@@ -161,9 +171,17 @@ class GroupViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
+    
+    def delete(self, request, pk):
+        delete_use_case = build_delete_group_use_case()
+        try:
+            delete_use_case.execute(str(pk))
+        except GroupNotFoundError:
+            return Response({"error": "Group not found"}, status=404)
+        return Response(status=204)
 
 
-class SubjectViewSet(APIView):    
+class SubjectViewSet(APIView):
     def get(self, request, pk=None, class_id=None):
         if pk:
             try:
@@ -205,7 +223,9 @@ class SubjectViewSet(APIView):
                 subject_id=str(pk),
                 name=request.data.get("name"),
                 description=request.data.get("description"),
-                school_grade_id=str(request.data.get("school_grade")) if request.data.get("school_grade") else None,
+                school_grade_id=str(request.data.get("school_grade"))
+                if request.data.get("school_grade")
+                else None,
             )
             data = update_use_case.execute(command)
         except SubjectNotFoundError:
@@ -222,7 +242,9 @@ class SubjectViewSet(APIView):
                 subject_id=str(pk),
                 name=request.data.get("name"),
                 description=request.data.get("description"),
-                school_grade_id=str(request.data.get("school_grade")) if request.data.get("school_grade") else None,
+                school_grade_id=str(request.data.get("school_grade"))
+                if request.data.get("school_grade")
+                else None,
             )
             data = update_use_case.execute(command)
         except SubjectNotFoundError:
@@ -230,9 +252,16 @@ class SubjectViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
+    
+    def delete(self, request, pk):
+        delete_use_case = build_delete_subject_use_case()
+        try:
+            delete_use_case.execute(str(pk))
+        except SubjectNotFoundError:
+            return Response({"error": "Subject not found"}, status=404)
+        return Response(status=204)
 
 
-# en revision, posible conflicto con student viewset al crear matricula
 class EnrollmentViewSet(APIView):
     permission_classes = [IsAdmin]
 
@@ -250,8 +279,17 @@ class EnrollmentViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        serializer = EnrollmentSerializer(data=request.data)
-        if serializer.is_valid():
+        group = Group.objects.get(pk=request.data.get("group"))
+        if not group:
+            return Response({"error": "Group not found"}, status=404)
+        data = Enrollment(
+            student_id=request.data.get("student"),
+            group=group,
+            period=request.data.get("period"),
+            state=request.data.get("state"),
+        )
+        serializer = EnrollmentSerializer(data, data=request.data)
+        if serializer.is_valid():            
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
@@ -262,8 +300,12 @@ class EnrollmentViewSet(APIView):
         try:
             command = UpdateEnrollmentCommand(
                 enrollment_id=str(pk),
-                student_id=str(request.data.get("student")) if request.data.get("student") else None,
-                group_id=str(request.data.get("group")) if request.data.get("group") else None,
+                student_id=str(request.data.get("student"))
+                if request.data.get("student")
+                else None,
+                group_id=str(request.data.get("group"))
+                if request.data.get("group")
+                else None,
                 period=request.data.get("period"),
                 state=request.data.get("state"),
             )
@@ -273,15 +315,19 @@ class EnrollmentViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
-
+    
     def patch(self, request, pk):
         update_use_case = build_update_enrollment_use_case()
 
         try:
             command = UpdateEnrollmentCommand(
                 enrollment_id=str(pk),
-                student_id=str(request.data.get("student")) if request.data.get("student") else None,
-                group_id=str(request.data.get("group")) if request.data.get("group") else None,
+                student_id=str(request.data.get("student"))
+                if request.data.get("student")
+                else None,
+                group_id=str(request.data.get("group"))
+                if request.data.get("group")
+                else None,
                 period=request.data.get("period"),
                 state=request.data.get("state"),
             )
@@ -291,6 +337,14 @@ class EnrollmentViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
+    
+    def delete(self, request, pk):
+        delete_use_case = build_delete_enrollment_use_case()
+        try:
+            delete_use_case.execute(str(pk))
+        except EnrollmentNotFoundError:
+            return Response({"error": "Enrollment not found"}, status=404)
+        return Response(status=204)
 
 
 # ClassRoom ViewSet
@@ -305,7 +359,7 @@ class ClassRoomViewSet(APIView):
             serializer = ClassRoomSerializer(classroom)
             return Response(serializer.data)
         else:
-            if staff.role == "Admin":
+            if staff.role == "Admin" or staff.role == "Superuser":
                 classrooms = ClassRoom.objects.all()
             elif staff.role == "Teacher":
                 classrooms = ClassRoom.objects.filter(staff=staff)
@@ -338,8 +392,12 @@ class ClassRoomViewSet(APIView):
         try:
             command = UpdateClassRoomCommand(
                 classroom_id=str(pk),
-                group_id=str(request.data.get("group_id")) if request.data.get("group_id") else None,
-                staff_id=str(request.data.get("staff_id")) if request.data.get("staff_id") else None,
+                group_id=str(request.data.get("group_id"))
+                if request.data.get("group_id")
+                else None,
+                staff_id=str(request.data.get("staff_id"))
+                if request.data.get("staff_id")
+                else None,
             )
             data = update_use_case.execute(command)
         except ClassRoomNotFoundError:
@@ -363,8 +421,12 @@ class ClassRoomViewSet(APIView):
         try:
             command = UpdateClassRoomCommand(
                 classroom_id=str(pk),
-                group_id=str(request.data.get("group_id")) if request.data.get("group_id") else None,
-                staff_id=str(request.data.get("staff_id")) if request.data.get("staff_id") else None,
+                group_id=str(request.data.get("group_id"))
+                if request.data.get("group_id")
+                else None,
+                staff_id=str(request.data.get("staff_id"))
+                if request.data.get("staff_id")
+                else None,
             )
             data = update_use_case.execute(command)
         except ClassRoomNotFoundError:
