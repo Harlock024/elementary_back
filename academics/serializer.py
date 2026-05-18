@@ -9,7 +9,7 @@ from academics.models import Group
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = ['id','period', 'state']
+        fields = ['id', 'period', 'state']
 
 class EnrollmentDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,7 +66,7 @@ class ClassRoomSerializer(serializers.ModelSerializer):
         if not group: 
             return []
 
-        enrollments = group.enrollments.all()
+        enrollments = group.enrollments.filter(state='active')
 
         student = [enrollment.student for enrollment in enrollments]
 

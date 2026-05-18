@@ -13,7 +13,7 @@ class DjangoStudentRepository:
         return StudentDetailSerializer(students, many=True).data
 
     def list_students_by_group(self, group_id: str) -> list[dict]:
-        students = Student.objects.filter(enrollment__group__id=group_id)
+        students = Student.objects.filter(enrollment__group__id=group_id, enrollment__state='active')
         return StudentDetailSerializer(students, many=True).data
     
     def get_student_detail(self, student_id: str) -> dict | None:
