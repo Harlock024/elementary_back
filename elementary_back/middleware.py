@@ -9,7 +9,7 @@ class IsAdmin(BasePermission):
     Custom permission to only allow admin users to access certain views.
     """
 
-    allowed_roles = ['Admin', 'Superuser']
+    allowed_roles = ['Admin', 'Superuser','Principal']
     def has_permission(self, request, view):
         return ( request.user and request.user.is_authenticated and 
                 getattr(request.user, 'role', None) in self.allowed_roles
@@ -23,7 +23,7 @@ class RoleScopeMiddleware(MiddlewareMixin):
             request.scope = None;
             return None
 
-        if staff.role == 'Admin' or staff.role == 'Superuser':
+        if staff.role == 'Admin' or staff.role == 'Superuser' or staff.role == 'Principal':
             request.scope = 'all';
         elif staff.role == 'Teacher':
             request.scope = 'Teacher';

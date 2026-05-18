@@ -22,6 +22,7 @@ urlpatterns = [
     # Enrollment endpoints
     path("enrollments/", EnrollmentViewSet.as_view(), name="enrollment-list"),
     path("enrollments/<uuid:pk>/", EnrollmentViewSet.as_view(), name="enrollment-detail,enrollment-delete"),
+    path("enrollments/student/<uuid:student_id>/", EnrollmentViewSet.as_view(), name="enrollments-by-student"),
     # ClassRoom endpoints
     path("classrooms/", ClassRoomViewSet.as_view(), name="classroom-list"),
     path("classrooms/<uuid:pk>/", ClassRoomViewSet.as_view(), name="classroom-detail,classroom-delete"),

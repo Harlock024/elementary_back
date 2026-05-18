@@ -129,6 +129,14 @@ class DjangoEnrollmentRepository:
         enrollments = Enrollment.objects.all()
         return EnrollmentSerializer(enrollments, many=True).data
 
+    def list_enrollments_by_state(self, state: str) -> list[dict]:
+        enrollments = Enrollment.objects.filter(state=state)
+        return EnrollmentSerializer(enrollments, many=True).data
+
+    def list_enrollments_by_student(self, student_id: str) -> list[dict]:
+        enrollments = Enrollment.objects.filter(student_id=student_id)
+        return EnrollmentSerializer(enrollments, many=True).data
+
     def get_enrollment(self, enrollment_id: str) -> dict | None:
         enrollment = Enrollment.objects.filter(pk=enrollment_id).first()
         if enrollment is None:

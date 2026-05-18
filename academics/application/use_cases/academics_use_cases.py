@@ -58,6 +58,19 @@ class DeleteClassRoomUseCase:
     def execute(self, classroom_id: str) -> None:
         self.repository.delete_classroom(classroom_id)
 
+class ListEnrollmentsByStateUseCase:
+    def __init__(self, repository: EnrollmentRepository):
+        self.repository = repository
+
+    def execute(self, state: str) -> list[dict]:
+        return self.repository.list_enrollments_by_state(state)
+
+class ListEnrollmentsByStudentUseCase:
+    def __init__(self, repository: EnrollmentRepository):
+        self.repository = repository
+
+    def execute(self, student_id: str) -> list[dict]:
+        return self.repository.list_enrollments_by_student(student_id)
 
 class UpdateEnrollmentUseCase:
     def __init__(self, repository: EnrollmentRepository):

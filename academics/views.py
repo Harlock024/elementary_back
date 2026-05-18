@@ -21,6 +21,7 @@ from academics.domain.exceptions.school_grade_exceptions import SchoolGradeNotFo
 from academics.interfaces.http.academics_use_case_factory import (
     build_delete_classroom_use_case,
     build_update_classroom_use_case,
+    build_list_enrollments_use_case,
     build_update_enrollment_use_case,
     build_delete_enrollment_use_case,
     build_update_group_use_case,
@@ -265,7 +266,8 @@ class SubjectViewSet(APIView):
 class EnrollmentViewSet(APIView):
     permission_classes = [IsAdmin]
 
-    def get(self, request, pk=None):
+    def get(self, request, student_id, pk=None):
+        staff = self.request.user
         if pk:
             try:
                 enrollment = Enrollment.objects.get(pk=pk)
@@ -273,10 +275,23 @@ class EnrollmentViewSet(APIView):
                 return Response({"error": "Enrollment not found"}, status=404)
             serializer = EnrollmentSerializer(enrollment)
             return Response(serializer.data)
-        else:
+        elif student_id:
+                enrollments = Enrollment.objects.filter(student_id=student_id)
+                serializer = EnrollmentSerializer(enrollments, many=True)
+                return Response(serializer.data)    
+        elif  staff.role == "Superuser" or staff.role == "Principal":
             enrollments = Enrollment.objects.all()
             serializer = EnrollmentSerializer(enrollments, many=True)
             return Response(serializer.data)
+        elif staff.role == "Admin":
+            enrollments = Enrollment.objects.filter(state="active")
+            serializer = EnrollmentSerializer(enrollments, many=True)   
+            return Response(serializer.data)
+        else:
+            return Response(
+                {"detail": "You do not have permission to access this resource."},
+                status=403,
+            )
 
     def post(self, request):
         group = Group.objects.get(pk=request.data.get("group"))

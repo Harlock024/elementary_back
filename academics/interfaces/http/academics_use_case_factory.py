@@ -37,6 +37,11 @@ def build_delete_classroom_use_case() -> DeleteClassRoomUseCase:
     return DeleteClassRoomUseCase(repository=DjangoClassRoomRepository())
 
 
+def build_list_enrollments_use_case() -> UpdateEnrollmentUseCase:
+    return UpdateEnrollmentUseCase(repository=DjangoEnrollmentRepository())
+
+
+
 def build_update_enrollment_use_case() -> UpdateEnrollmentUseCase:
     return UpdateEnrollmentUseCase(repository=DjangoEnrollmentRepository())
 
