@@ -33,3 +33,11 @@ class CreateAssignmentUseCase:
             max_score=command.max_score,
         )
         return self.repository.create_assignment(command)
+
+
+class DeleteAssignmentUseCase:
+    def __init__(self, repository: AssignmentRepository):
+        self.repository = repository
+
+    def execute(self, assignment_id: str) -> None:
+        self.repository.delete_assignment(assignment_id)

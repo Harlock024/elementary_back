@@ -15,6 +15,7 @@ from assignments.domain.exceptions.assignments_exception import (
 )
 from assignments.interfaces.http.assignment_use_case_factory import (
     build_create_assignment_use_case,
+    build_delete_assignment_use_case,
     build_list_assignments_use_case,
     build_update_assignment_use_case,
 )
@@ -77,6 +78,15 @@ class AssignmentView(APIView):
             return Response({"error": str(exc)}, status=400)
         except ClassRoomNotFoundError as exc:
             return Response({"error": str(exc)}, status=400)
+
+    def delete(self, request, id=None):
+        if not id:
+            return Response({"error": "Assignment ID is required"}, status=400)
+        try:
+            build_delete_assignment_use_case().execute(str(id))
+        except AssignmentsNotFoundError:
+            return Response({"error": "Assignment not found"}, status=404)
+        return Response(status=204)
 
     def patch(self, request, id=None):
         if not id:

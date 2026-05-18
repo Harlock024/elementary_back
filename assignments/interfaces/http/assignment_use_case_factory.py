@@ -1,5 +1,6 @@
 from assignments.application.use_cases.assignments_use_cases import (
     CreateAssignmentUseCase,
+    DeleteAssignmentUseCase,
     ListAssignmentsUseCase,
 )
 
@@ -17,3 +18,6 @@ def build_create_assignment_use_case() -> CreateAssignmentUseCase:
 
 def build_update_assignment_use_case() -> UpdateAssignmentUseCase:
     return UpdateAssignmentUseCase(repository=DjangoAssignmentRepository())
+
+def build_delete_assignment_use_case() -> DeleteAssignmentUseCase:
+    return DeleteAssignmentUseCase(repository=DjangoAssignmentRepository())

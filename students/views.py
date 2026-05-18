@@ -101,25 +101,4 @@ class StudentViewSet(APIView):
         except StudentNotFoundError:
             return Response({"error": "Student not found"}, status=404)
         return Response(status=204)
-
-
-class StudentEnrrolmentView(APIView):
-    permission_classes = [IsAdmin]
-
-    def post(self, request, pk):
-        period = request.data.get("period")
-        state = request.data.get("state")
-
-        try:
-            command = UpdateEnrollmentCommand(
-                student_id=str(pk),
-                period=period,
-                state=state,
-            )
-            return Response(build_update_enrollment_use_case().execute(command))
-        except StudentNotFoundError:
-            return Response({"error": "Student not found"}, status=404)
-        except GroupNotFoundError:
-            return Response({"error": "Group not found"}, status=404)
-        except ValueError:
-            return Response({"error": "Invalid request payload"}, status=400)
+    
