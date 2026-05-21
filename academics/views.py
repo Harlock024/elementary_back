@@ -42,6 +42,7 @@ from .models import ClassRoom, Enrollment, Group, SchoolGrade, Subject
 from .serializer import (
     ClassRoomSerializer,
     EnrollmentSerializer,
+    GroupDetailSerializer,
     GroupSerializer,
     SubjectSerializer,
 )
@@ -116,11 +117,11 @@ class GroupViewSet(APIView):
                 group = Group.objects.get(pk=pk)
             except Group.DoesNotExist:
                 return Response({"error": "Group not found"}, status=404)
-            serializer = GroupSerializer(group)
+            serializer = GroupDetailSerializer(group)
             return Response(serializer.data)
         else:
             groups = Group.objects.all()
-            serializer = GroupSerializer(groups, many=True)
+            serializer = GroupDetailSerializer(groups, many=True)
             return Response(serializer.data)
 
     def post(self, request):
@@ -284,7 +285,7 @@ class EnrollmentViewSet(APIView):
             serializer = EnrollmentSerializer(enrollments, many=True)
             return Response(serializer.data)
         elif staff.role == "Admin":
-            enrollments = Enrollment.objects.filter(state="active")
+            enrollments = Enrollment.objects.filter(state="activo")
             serializer = EnrollmentSerializer(enrollments, many=True)   
             return Response(serializer.data)
         else:

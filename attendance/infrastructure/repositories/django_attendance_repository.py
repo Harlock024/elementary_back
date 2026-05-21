@@ -10,6 +10,7 @@ from attendance.models import Attendance, CatalogTypeAtendance
 from attendance.serializer import AttendanceCreateUpdateSerializer, AttendanceSerializer
 from academics.models import ClassRoom
 from students.models import Student
+from students.base_serializer import StudentSerializerNameOnly
 
 
 class DjangoAttendanceRepository:
@@ -19,17 +20,34 @@ class DjangoAttendanceRepository:
         attendance_date: str | None = None,
         student_id: str | None = None,
     ) -> list[dict]:
-        attendance = Attendance.objects.all()
 
         if class_id and attendance_date:
-            attendance = attendance.filter(class_room_id=class_id, date=attendance_date)
-        elif class_id:
+            classroom = ClassRoom.objects.select_related('group').filter(id=class_id).first()
+            if classroom is None:
+                return []
+            students = Student.objects.filter(
+                enrollments__group=classroom.group,
+                enrollments__state='activo',
+            ).distinct()
+            result = []
+            for student in students:
+                attendance = Attendance.objects.filter(
+                    student=student,
+                    date=attendance_date,
+                ).first()
+                result.append({
+                    'student': StudentSerializerNameOnly(student).data,
+                    'attendance': AttendanceSerializer(attendance).data if attendance else None,
+                })
+            return result
+
+        attendance = Attendance.objects.all()
+        if class_id:
             attendance = attendance.filter(class_room_id=class_id)
         elif student_id and attendance_date:
             attendance = attendance.filter(student_id=student_id, date=attendance_date)
 
-        serializer = AttendanceSerializer(attendance, many=True)
-        return serializer.data
+        return AttendanceSerializer(attendance, many=True).data
 
     def create_attendance(self, command: CreateAttendanceCommand) -> dict:
         existing = Attendance.objects.filter(
@@ -59,7 +77,12 @@ class DjangoAttendanceRepository:
             date=command.attendance_date,
             state_code=state_code,
         )
-        attendance.save()
+        try:
+            attendance.save()
+        except Exception:
+            raise AttendanceAlreadyExistsError(
+                "Attendance for this student in this class already exists."
+            )
 
         serializer = AttendanceCreateUpdateSerializer(attendance)
         return serializer.data

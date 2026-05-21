@@ -27,9 +27,9 @@ class StudentDetailSerializer(serializers.ModelSerializer):
     group = serializers.SerializerMethodField()
 
     def get_group(self, obj: Student):
-        last_enrollment = obj.enrollments.order_by('-created_at').first()
-        if last_enrollment and last_enrollment.group:
-            return GroupSerializer(last_enrollment.group).data
+        active_enrollment = obj.enrollments.filter(state='activo').order_by('-created_at').first()
+        if active_enrollment and active_enrollment.group:
+            return GroupSerializer(active_enrollment.group).data
         return None
 
     class Meta:

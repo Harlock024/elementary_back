@@ -18,7 +18,7 @@ class Enrollment(models.Model):
     )
     period = models.CharField(max_length=20)
     enrollment_date = models.DateField(auto_now_add=True)
-    state = models.CharField(max_length=20, default='active')
+    state = models.CharField(max_length=20, default='activo')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

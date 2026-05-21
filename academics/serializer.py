@@ -34,6 +34,17 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = ['id', 'letter', 'school_grade', 'created_at', 'updated_at']
 
+class GroupDetailSerializer(GroupSerializer):
+    students = serializers.SerializerMethodField()
+
+    class Meta(GroupSerializer.Meta):
+        fields = GroupSerializer.Meta.fields + ['students']
+
+    def get_students(self, obj: Group) -> list:
+        enrollments = obj.enrollments.filter(state='activo')
+        students = [e.student for e in enrollments]
+        return StudentSerializerNameOnly(students, many=True).data
+
 class SubjectSerializer(serializers.ModelSerializer):
     school_grade = SchoolGradeNameOnlySerializer(read_only=True)
     class Meta:
@@ -52,25 +63,11 @@ class SubjectNameOnlySerializer(serializers.ModelSerializer):
         fields = ['name']
 
 class ClassRoomSerializer(serializers.ModelSerializer):
-    group = GroupSerializer(read_only=True) 
+    group = GroupDetailSerializer(read_only=True)
     staff = StaffSerializerNameOnly(read_only=True)
-    students = serializers.SerializerMethodField()
     class Meta:
         model = ClassRoom
-        fields = ['id', 'staff','students','group','created_at', 'updated_at']
-
-
-    def get_students(self, obj:ClassRoom)->list:
-        group = obj.group
-
-        if not group: 
-            return []
-
-        enrollments = group.enrollments.filter(state='active')
-
-        student = [enrollment.student for enrollment in enrollments]
-
-        return StudentSerializerNameOnly(student, many=True).data
+        fields = ['id', 'staff', 'group', 'created_at', 'updated_at']
 
 
 
