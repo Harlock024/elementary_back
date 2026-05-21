@@ -8,8 +8,8 @@ class ListGradesUseCase:
     def __init__(self, repository: GradeRepository):
         self.repository = repository
 
-    def execute(self, class_room_id: str | None = None) -> list[dict]:
-        return self.repository.list_grades(class_room_id=class_room_id)
+    def execute(self, class_room_id: str | None = None, student_id: str | None = None) -> list[dict]:
+        return self.repository.list_grades(class_room_id=class_room_id, student_id=student_id)
 
 
 class GetGradeUseCase:

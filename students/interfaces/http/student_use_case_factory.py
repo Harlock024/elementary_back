@@ -2,7 +2,9 @@ from students.application.use_cases.create_student import CreateStudentWithEnrol
 from students.application.use_cases.delete_student import DeleteStudentUseCase
 from students.application.use_cases.get_students import (
     GetStudentDetailUseCase,
+    GetStudentProfileUseCase,
     ListStudentsUseCase,
+    ListStudentsByClassroomUseCase,
     ListStudentsByGroupUseCase,
 )
 from students.application.use_cases.update_student import UpdateStudentUseCase
@@ -15,8 +17,14 @@ def build_list_students_use_case() -> ListStudentsUseCase:
 def build_list_students_by_group_use_case() -> ListStudentsByGroupUseCase:
     return ListStudentsByGroupUseCase(repository=DjangoStudentRepository())
 
+def build_list_students_by_classroom_use_case() -> ListStudentsByClassroomUseCase:
+    return ListStudentsByClassroomUseCase(repository=DjangoStudentRepository())
+
 def build_get_student_detail_use_case() -> GetStudentDetailUseCase:
     return GetStudentDetailUseCase(repository=DjangoStudentRepository())
+
+def build_get_student_profile_use_case() -> GetStudentProfileUseCase:
+    return GetStudentProfileUseCase(repository=DjangoStudentRepository())
 
 
 def build_create_student_use_case() -> CreateStudentWithEnrollmentUseCase:

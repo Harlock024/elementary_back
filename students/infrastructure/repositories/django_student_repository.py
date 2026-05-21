@@ -1,10 +1,11 @@
 from django.db import transaction
+from django.db.models import Prefetch
 
 from academics.models import Enrollment, Group
 from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
 from students.domain.exceptions.student_exceptions import GroupNotFoundError, StudentNotFoundError
 from students.models import Student
-from students.serializer import StudentDetailSerializer, StudentSerializer
+from students.serializer import StudentDetailSerializer, StudentProfileSerializer, StudentSerializer
 
 
 class DjangoStudentRepository:
@@ -14,6 +15,13 @@ class DjangoStudentRepository:
 
     def list_students_by_group(self, group_id: str) -> list[dict]:
         students = Student.objects.filter(enrollments__group__id=group_id, enrollments__state='activo')
+        return StudentDetailSerializer(students, many=True).data
+
+    def list_students_by_classroom(self, classroom_id: str) -> list[dict]:
+        students = Student.objects.filter(
+            enrollments__group__classes__id=classroom_id,
+            enrollments__state='activo',
+        ).distinct()
         return StudentDetailSerializer(students, many=True).data
     
     def get_student_detail(self, student_id: str) -> dict | None:
@@ -87,3 +95,20 @@ class DjangoStudentRepository:
         if student is None:
             raise StudentNotFoundError("Student not found")
         student.delete()
+
+    def get_student_profile(self, student_id: str) -> dict | None:
+        student = (
+            Student.objects
+            .prefetch_related(
+                Prefetch(
+                    'enrollments',
+                    queryset=Enrollment.objects.select_related('group__school_grade').order_by('-created_at'),
+                ),
+                'grades__assignment__subject',
+            )
+            .filter(pk=student_id)
+            .first()
+        )
+        if student is None:
+            return None
+        return StudentProfileSerializer(student).data

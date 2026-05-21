@@ -38,8 +38,10 @@ class GradeViewSet(APIView):
             except GradeNotFoundError:
                 return Response({"error": "Grade not found"}, status=404)
             return Response(grade)
+        student_id = request.query_params.get('student')
         return Response(build_list_grades_use_case().execute(
-            class_room_id=str(class_room_id) if class_room_id else None
+            class_room_id=str(class_room_id) if class_room_id else None,
+            student_id=str(student_id) if student_id else None,
         ))
 
     def post(self, request):

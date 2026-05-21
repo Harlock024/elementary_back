@@ -10,6 +10,8 @@ from students.interfaces.http.student_use_case_factory import (
     build_create_student_use_case,
     build_delete_student_use_case,
     build_get_student_detail_use_case,
+    build_get_student_profile_use_case,
+    build_list_students_by_classroom_use_case,
     build_list_students_use_case,
     build_list_students_by_group_use_case,
     build_update_student_use_case,
@@ -20,7 +22,7 @@ from students.interfaces.http.student_use_case_factory import (
 class StudentViewSet(APIView):
     permission_classes = [IsAdmin]
     
-    def get(self, request,group_id=None, pk=None):
+    def get(self, request, group_id=None, pk=None):
         if group_id:
             try:
                 students = build_list_students_by_group_use_case().execute(str(group_id))
@@ -33,6 +35,9 @@ class StudentViewSet(APIView):
             except StudentNotFoundError:
                 return Response({"error": "Student not found"}, status=404)
             return Response(student)
+        classroom_id = request.query_params.get('classroom_id')
+        if classroom_id:
+            return Response(build_list_students_by_classroom_use_case().execute(classroom_id))
         return Response(build_list_students_use_case().execute())
 
     def post(self, request):
@@ -101,4 +106,15 @@ class StudentViewSet(APIView):
         except StudentNotFoundError:
             return Response({"error": "Student not found"}, status=404)
         return Response(status=204)
+
+
+class StudentProfileView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, pk):
+        try:
+            profile = build_get_student_profile_use_case().execute(str(pk))
+        except StudentNotFoundError:
+            return Response({"error": "Student not found"}, status=404)
+        return Response(profile)
     

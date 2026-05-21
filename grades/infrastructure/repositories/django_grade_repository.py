@@ -14,10 +14,12 @@ from students.models import Student
 
 
 class DjangoGradeRepository:
-    def list_grades(self, class_room_id: str | None = None) -> list[dict]:
-        qs = StudentGrade.objects.select_related('student', 'subject', 'class_room', 'assignment')
+    def list_grades(self, class_room_id: str | None = None, student_id: str | None = None) -> list[dict]:
+        qs = StudentGrade.objects.select_related('student', 'subject', 'class_room', 'assignment__subject')
         if class_room_id:
             qs = qs.filter(class_room_id=class_room_id)
+        if student_id:
+            qs = qs.filter(student_id=student_id)
         return StudentGradeSerializer(qs, many=True).data
 
     def get_grade(self, grade_id: int) -> dict | None:
