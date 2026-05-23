@@ -87,7 +87,34 @@ class DjangoStudentRepository:
         if command.state is not None:
             student.state = command.state
 
-        student.save()
+        with transaction.atomic():
+            student.save()
+
+            if command.group_id is not None:
+                group = Group.objects.filter(pk=command.group_id).first()
+                if group is None:
+                    raise GroupNotFoundError("Group not found")
+
+                active_enrollment = Enrollment.objects.filter(
+                    student=student, state='activo'
+                ).select_related('group').first()
+
+                period = command.period or (active_enrollment.period if active_enrollment else None)
+                if period is None:
+                    raise ValueError("period is required when changing group")
+
+                if active_enrollment and str(active_enrollment.group_id) != str(group.id):
+                    Enrollment.objects.filter(
+                        student=student, state='activo'
+                    ).update(state='inactivo')
+
+                Enrollment.objects.get_or_create(
+                    student=student,
+                    group=group,
+                    period=period,
+                    defaults={'state': 'activo'},
+                )
+
         return StudentSerializer(student).data
 
     def delete_student(self, student_id: str) -> None:

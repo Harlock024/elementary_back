@@ -90,10 +90,14 @@ class StudentViewSet(APIView):
                 date_of_birth=date.fromisoformat(birth_date) if birth_date else None,
                 gender=request.data.get("gender"),
                 state=request.data.get("state"),
+                group_id=request.data.get("group_id"),
+                period=request.data.get("period"),
             )
             return Response(build_update_student_use_case().execute(command))
         except StudentNotFoundError:
             return Response({"error": "Student not found"}, status=404)
+        except GroupNotFoundError:
+            return Response({"error": "Group not found"}, status=404)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
 

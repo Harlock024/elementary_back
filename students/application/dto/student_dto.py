@@ -32,3 +32,5 @@ class UpdateStudentCommand:
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     state: Optional[str] = None
+    group_id: Optional[str] = None
+    period: Optional[str] = None
