@@ -1,3 +1,4 @@
+from academics.application.use_cases.execute_promotion import ExecutePromotionUseCase
 from academics.application.use_cases.academics_use_cases import (
     DeleteClassRoomUseCase,
     UpdateClassRoomUseCase,
@@ -47,3 +48,7 @@ def build_update_enrollment_use_case() -> UpdateEnrollmentUseCase:
 
 def build_delete_enrollment_use_case() -> DeleteEnrollmentUseCase:
     return DeleteEnrollmentUseCase(repository=DjangoEnrollmentRepository())
+
+
+def build_execute_promotion_use_case() -> ExecutePromotionUseCase:
+    return ExecutePromotionUseCase()

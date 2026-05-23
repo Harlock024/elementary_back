@@ -12,3 +12,7 @@ class ClassRoomNotFoundError(Exception):
 
 class EnrollmentNotFoundError(Exception):
     pass
+
+
+class PromotionError(Exception):
+    pass

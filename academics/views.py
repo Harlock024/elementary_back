@@ -2,6 +2,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from academics.application.dto.academics_dto import (
+    PromoteStudentsCommand,
+    StudentActionItem,
+    TargetGroupData,
     UpdateClassRoomCommand,
     UpdateEnrollmentCommand,
     UpdateGroupCommand,
@@ -15,6 +18,7 @@ from academics.domain.exceptions.academics_exceptions import (
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
     GroupNotFoundError,
+    PromotionError,
     SubjectNotFoundError,
 )
 from academics.domain.exceptions.school_grade_exceptions import SchoolGradeNotFoundError
@@ -28,6 +32,7 @@ from academics.interfaces.http.academics_use_case_factory import (
     build_delete_group_use_case,
     build_update_subject_use_case,
     build_delete_subject_use_case,
+    build_execute_promotion_use_case,
 )
 from academics.interfaces.http.school_grade_use_case_factory import (
     build_create_school_grade_use_case,
@@ -44,6 +49,8 @@ from .serializer import (
     EnrollmentSerializer,
     GroupDetailSerializer,
     GroupSerializer,
+    PromotionInputSerializer,
+    PromotionOutputSerializer,
     SubjectSerializer,
 )
 
@@ -267,7 +274,7 @@ class SubjectViewSet(APIView):
 class EnrollmentViewSet(APIView):
     permission_classes = [IsAdmin]
 
-    def get(self, request, student_id, pk=None):
+    def get(self, request, student_id=None, pk=None):
         staff = self.request.user
         if pk:
             try:
@@ -277,9 +284,16 @@ class EnrollmentViewSet(APIView):
             serializer = EnrollmentSerializer(enrollment)
             return Response(serializer.data)
         elif student_id:
-                enrollments = Enrollment.objects.filter(student_id=student_id)
-                serializer = EnrollmentSerializer(enrollments, many=True)
-                return Response(serializer.data)    
+            enrollments = Enrollment.objects.filter(student_id=student_id)
+            serializer = EnrollmentSerializer(enrollments, many=True)
+            return Response(serializer.data)
+        elif request.query_params.get('group'):
+            enrollments = Enrollment.objects.filter(
+                group_id=request.query_params['group'],
+                state='activo',
+            )
+            serializer = EnrollmentSerializer(enrollments, many=True)
+            return Response(serializer.data)
         elif  staff.role == "Superuser" or staff.role == "Principal":
             enrollments = Enrollment.objects.all()
             serializer = EnrollmentSerializer(enrollments, many=True)
@@ -450,3 +464,44 @@ class ClassRoomViewSet(APIView):
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
+
+
+class PromotionView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        serializer = PromotionInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+        target_group_data = data.get('target_group')
+
+        command = PromoteStudentsCommand(
+            source_classroom_id=str(data['source_classroom_id']),
+            period=data['period'],
+            students=[
+                StudentActionItem(student_id=str(s['student_id']), action=s['action'])
+                for s in data['students']
+            ],
+            target_group=TargetGroupData(
+                school_grade_id=str(target_group_data['school_grade_id']),
+                letter=target_group_data['letter'],
+            ) if target_group_data else None,
+        )
+
+        use_case = build_execute_promotion_use_case()
+        try:
+            result = use_case.execute(command)
+        except PromotionError as e:
+            return Response(
+                {"detail": f"No se pudo completar la promoción. Todos los cambios fueron revertidos. Razón: {e}"},
+                status=400,
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"No se pudo completar la promoción. Todos los cambios fueron revertidos. Razón: {e}"},
+                status=500,
+            )
+
+        return Response(PromotionOutputSerializer(result).data, status=200)

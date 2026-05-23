@@ -4,6 +4,7 @@ from .views import (
     ClassRoomViewSet,
     EnrollmentViewSet,
     GroupViewSet,
+    PromotionView,
     SchoolGradeViewSet,
     SubjectViewSet,
 )
@@ -26,4 +27,6 @@ urlpatterns = [
     # ClassRoom endpoints
     path("classrooms/", ClassRoomViewSet.as_view(), name="classroom-list"),
     path("classrooms/<uuid:pk>/", ClassRoomViewSet.as_view(), name="classroom-detail,classroom-delete"),
+    # Promotion endpoint
+    path("promotions/execute/", PromotionView.as_view(), name="promotion-execute"),
 ]
