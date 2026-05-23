@@ -55,7 +55,7 @@ class DjangoStudentRepository:
                 student=student,
                 group=group,
                 period=command.period,
-                state="activo",
+                state=command.state,
             )
             enrollment.save()
 
