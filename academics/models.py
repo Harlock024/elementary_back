@@ -24,7 +24,7 @@ class Enrollment(models.Model):
 
     class Meta:
         db_table = "enrollments"
-        unique_together = ('student', 'period',"group")
+        unique_together = ('student', 'period', 'group', 'state')
 
 
 # Nivel Escolar ej 1ro, 2do, 3ro, 4to, 5to, 6to
