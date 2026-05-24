@@ -84,6 +84,14 @@ class StaffProfileView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+
+    def patch(self,request):
+        serializer = StaffSerializer(request.user, data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors,status=400)
+
 class StaffTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
