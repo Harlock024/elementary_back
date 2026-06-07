@@ -10,7 +10,11 @@ class Staff(AbstractUser):
             ('Teacher','Teacher'),
         ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='Teacher')
+    username = models.CharField(max_length=50, unique=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(max_length=150, blank=True)
+    role = models.CharField(max_length=50,choices=ROLE_CHOICES,default='Teacher')
     password_professor = models.CharField(max_length=128, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

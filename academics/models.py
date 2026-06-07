@@ -30,7 +30,7 @@ class Enrollment(models.Model):
 # Nivel Escolar ej 1ro, 2do, 3ro, 4to, 5to, 6to
 class SchoolGrade(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=5)
+    name = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
@@ -53,13 +53,13 @@ class Group(models.Model):
 
 class Subject(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     school_grade = models.ForeignKey(
             SchoolGrade, 
             on_delete=models.CASCADE, 
             related_name='subjects'
     )
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

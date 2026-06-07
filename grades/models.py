@@ -7,7 +7,7 @@ from students.models import Student
 
 class GradingCriteria(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=100)
     class_room = models.ForeignKey(
         ClassRoom,
         on_delete=models.CASCADE,
@@ -50,7 +50,7 @@ class StudentGrade(models.Model):
         related_name='grades'
     )
     score = models.DecimalField(max_digits=5, decimal_places=2)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(max_length=500, blank=True, null=True)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

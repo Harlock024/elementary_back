@@ -8,8 +8,8 @@ import uuid
 # Create your models here.
 class CatalogTypeAtendance(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) 
-    code = models.CharField(max_length=50)
-    description = models.TextField(blank=True, null=True)
+    code = models.CharField(max_length=10)
+    description = models.TextField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
