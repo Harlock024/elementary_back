@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from academics.models import ClassRoom, Group, SchoolGrade
+from academics.models import ClassRoom, Enrollment, Group, SchoolGrade
 from attendance.application.dto.attendance_dto import CreateAttendanceCommand
 from attendance.application.use_cases.attendance_use_cases import CreateAttendanceUseCase
 from attendance.application.use_cases.update_attendance import UpdateAttendanceUseCase
@@ -74,6 +74,12 @@ class AttendanceEndpointsSmokeTests(TestCase):
 		self.state_code = CatalogTypeAtendance.objects.create(
 			code="present",
 			description="Present",
+		)
+		Enrollment.objects.create(
+			student=self.student,
+			group=self.group,
+			period="2026",
+			state="activo",
 		)
 
 	def test_create_attendance_endpoint_returns_201(self):
