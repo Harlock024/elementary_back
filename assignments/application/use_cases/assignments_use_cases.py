@@ -11,10 +11,14 @@ class ListAssignmentsUseCase:
         self,
         class_id: str | None = None,
         student_id: str | None = None,
+        due_date=None,
+        classroom_ids: list[str] | None = None,
     ) -> list[dict]:
         return self.repository.list_assignments(
             class_id=class_id,
             student_id=student_id,
+            due_date=due_date,
+            classroom_ids=classroom_ids,
         )
 
 

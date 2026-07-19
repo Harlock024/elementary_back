@@ -6,6 +6,9 @@ from typing import Optional
 class CreateStaffCommand:
     first_name: str
     last_name: str
+    password: str
+    username: Optional[str] = None
+    role: str = "Teacher"
 
 
 @dataclass(frozen=True)

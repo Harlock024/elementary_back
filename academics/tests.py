@@ -242,3 +242,96 @@ class AcademicsEndpointsSmokeTests(TestCase):
 		)
 
 		self.assertEqual(response.status_code, 200)
+
+
+class AcademicsAuthorizationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.teacher = Staff.objects.create_user(
+            username="teacher-academics-auth",
+            password="pass1234",
+            role="Teacher",
+        )
+        self.other_teacher = Staff.objects.create_user(
+            username="other-teacher-academics-auth",
+            password="pass1234",
+            role="Teacher",
+        )
+        self.school_grade = SchoolGrade.objects.create(name="5to-auth")
+        self.own_group = Group.objects.create(letter="A", school_grade=self.school_grade)
+        self.other_group = Group.objects.create(letter="B", school_grade=self.school_grade)
+        self.own_classroom = ClassRoom.objects.create(
+            group=self.own_group,
+            staff=self.teacher,
+        )
+        self.other_classroom = ClassRoom.objects.create(
+            group=self.other_group,
+            staff=self.other_teacher,
+        )
+        self.subject = Subject.objects.create(
+            name="Mathematics-auth",
+            school_grade=self.school_grade,
+        )
+
+    def test_anonymous_user_cannot_list_classrooms(self):
+        response = self.client.get("/api/academics/classrooms/")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_teacher_lists_only_assigned_classrooms(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get("/api/academics/classrooms/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data], [str(self.own_classroom.id)])
+
+    def test_teacher_cannot_read_another_classroom(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(
+            f"/api/academics/classrooms/{self.other_classroom.id}/"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_teacher_cannot_create_classroom(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.post(
+            "/api/academics/classrooms/",
+            {"group_id": str(self.own_group.id), "staff_id": str(self.teacher.id)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_teacher_can_read_subjects_for_assigned_classroom(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(
+            f"/api/academics/subjects/classroom/{self.own_classroom.id}/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data], [str(self.subject.id)])
+
+    def test_teacher_cannot_read_subjects_for_another_classroom(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(
+            f"/api/academics/subjects/classroom/{self.other_classroom.id}/"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_teacher_cannot_update_subject(self):
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.patch(
+            f"/api/academics/subjects/{self.subject.id}/",
+            {"name": "Forbidden change"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)

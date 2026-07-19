@@ -10,6 +10,10 @@ class ClassRoomNotFoundError(Exception):
     pass
 
 
+class ClassRoomHistoryConflictError(Exception):
+    pass
+
+
 class EnrollmentNotFoundError(Exception):
     pass
 

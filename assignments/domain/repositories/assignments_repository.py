@@ -8,6 +8,8 @@ class AssignmentRepository(Protocol):
         self,
         class_id: str | None = None,
         student_id: str | None = None,
+        due_date=None,
+        classroom_ids: list[str] | None = None,
     ) -> list[dict]:
         ...
 

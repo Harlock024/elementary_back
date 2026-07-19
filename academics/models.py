@@ -8,12 +8,12 @@ class Enrollment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
             'students.Student', 
-            on_delete=models.CASCADE, 
+            on_delete=models.PROTECT,
             related_name='enrollments'
     )
     group = models.ForeignKey(
             'academics.Group', 
-            on_delete=models.CASCADE, 
+            on_delete=models.PROTECT,
             related_name='enrollments'
     )
     period = models.CharField(max_length=20)
@@ -42,13 +42,19 @@ class Group(models.Model):
     letter = models.CharField(max_length=5)
     school_grade = models.ForeignKey(
             SchoolGrade, 
-            on_delete=models.CASCADE, 
+            on_delete=models.PROTECT,
             related_name='groups'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
         db_table = "groups"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['school_grade', 'letter'],
+                name='uniq_group_school_grade_letter',
+            ),
+        ]
 
 
 class Subject(models.Model):
@@ -56,7 +62,7 @@ class Subject(models.Model):
     name = models.CharField(max_length=100)
     school_grade = models.ForeignKey(
             SchoolGrade, 
-            on_delete=models.CASCADE, 
+            on_delete=models.PROTECT,
             related_name='subjects'
     )
     description = models.TextField(max_length=500, blank=True, null=True)
@@ -70,12 +76,12 @@ class ClassRoom(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     staff = models.ForeignKey(
             staff.models.Staff,
-            on_delete=models.CASCADE, 
+            on_delete=models.PROTECT,
             related_name='classes'
     )
     group = models.ForeignKey(
             Group,
-            on_delete=models.CASCADE,
+            on_delete=models.PROTECT,
             related_name='classes'
             )
 
@@ -84,9 +90,12 @@ class ClassRoom(models.Model):
 
     class Meta:
         db_table = "class_rooms"
-
-    indexes = [
-        models.Index(fields=['staff', 'group'], name='idx_staff_group'),
-    ]
-
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['group'],
+                name='uniq_classroom_group',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['staff', 'group'], name='idx_staff_group'),
+        ]

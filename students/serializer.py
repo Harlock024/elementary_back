@@ -27,14 +27,33 @@ class StudentSerializerNameOnly(serializers.ModelSerializer):
 
 
 class StudentDetailSerializer(serializers.ModelSerializer):
-    enrollments = EnrollmentSerializer(read_only=True, many=True)
+    enrollments = serializers.SerializerMethodField()
     group = serializers.SerializerMethodField()
 
+    @staticmethod
+    def _detail_enrollments(obj: Student):
+        if hasattr(obj, 'detail_enrollments'):
+            return obj.detail_enrollments
+        return obj.enrollments.all()
+
     def get_group(self, obj: Student):
-        active_enrollment = obj.enrollments.filter(state='activo').order_by('-created_at').first()
+        active_enrollment = next(
+            (
+                enrollment
+                for enrollment in self._detail_enrollments(obj)
+                if enrollment.state == 'activo'
+            ),
+            None,
+        )
         if active_enrollment and active_enrollment.group:
             return GroupSerializer(active_enrollment.group).data
         return None
+
+    def get_enrollments(self, obj: Student):
+        return EnrollmentSerializer(
+            self._detail_enrollments(obj),
+            many=True,
+        ).data
 
     class Meta:
         model = Student
@@ -86,12 +105,21 @@ class _EnrollmentInProfileSerializer(serializers.ModelSerializer):
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     group = serializers.SerializerMethodField()
-    enrollments = _EnrollmentInProfileSerializer(many=True, read_only=True)
+    enrollments = serializers.SerializerMethodField()
     tutor = serializers.SerializerMethodField()
-    grades = _GradeInProfileSerializer(many=True, read_only=True)
+    grades = serializers.SerializerMethodField()
+
+    @staticmethod
+    def _profile_enrollments(obj: Student):
+        if hasattr(obj, 'profile_enrollments'):
+            return obj.profile_enrollments
+        return obj.enrollments.all()
 
     def get_group(self, obj: Student):
-        active = next((e for e in obj.enrollments.all() if e.state == 'activo'), None)
+        active = next(
+            (e for e in self._profile_enrollments(obj) if e.state == 'activo'),
+            None,
+        )
         if not active or not active.group:
             return None
         g = active.group
@@ -100,6 +128,19 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'letter': g.letter,
             'school_grade': {'id': str(g.school_grade.id), 'name': g.school_grade.name},
         }
+
+    def get_enrollments(self, obj: Student):
+        return _EnrollmentInProfileSerializer(
+            self._profile_enrollments(obj),
+            many=True,
+        ).data
+
+    def get_grades(self, obj: Student):
+        if hasattr(obj, 'profile_grades'):
+            grades = obj.profile_grades
+        else:
+            grades = obj.grades.all()
+        return _GradeInProfileSerializer(grades, many=True).data
 
     def get_tutor(self, obj: Student):
         return {

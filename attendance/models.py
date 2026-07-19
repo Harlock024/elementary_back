@@ -22,7 +22,7 @@ class CatalogTypeAtendance(models.Model):
 class Attendance(models.Model):
     student = models.ForeignKey(
         Student,
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,
         related_name='attendances'
     )
     state_code = models.ForeignKey(
@@ -33,7 +33,7 @@ class Attendance(models.Model):
 
     class_room = models.ForeignKey(
         ClassRoom,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='attendances',
         default=1
     )

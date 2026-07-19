@@ -16,12 +16,24 @@ Including another URLconf
 """
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
+from elementary_back.middleware import IsAdmin
+from staff.views import StaffTokenRefreshView
 
 
 urlpatterns = [
-    path('api/schema/',SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/token/refresh/', StaffTokenRefreshView.as_view(), name='token_refresh'),
+    path(
+        'api/schema/',
+        SpectacularAPIView.as_view(permission_classes=[IsAdmin]),
+        name='schema',
+    ),
+    path(
+        'api/docs/',
+        SpectacularSwaggerView.as_view(
+            url_name='schema', permission_classes=[IsAdmin]
+        ),
+        name='swagger-ui',
+    ),
     path('api/staff/', include('staff.urls')),
     path('api/students/', include('students.urls')),
     path('api/academics/', include('academics.urls')),
@@ -29,4 +41,3 @@ urlpatterns = [
     path('api/assignments/', include('assignments.urls')),
     path('api/grades/', include('grades.urls')),
 ]
-

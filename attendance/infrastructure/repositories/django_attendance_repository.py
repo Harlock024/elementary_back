@@ -34,6 +34,7 @@ class DjangoAttendanceRepository:
                 attendance = Attendance.objects.filter(
                     student=student,
                     date=attendance_date,
+                    class_room=classroom,
                 ).first()
                 result.append({
                     'student': StudentSerializerNameOnly(student).data,

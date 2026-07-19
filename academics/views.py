@@ -1,4 +1,6 @@
+from django.db.models.deletion import ProtectedError
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from academics.application.dto.academics_dto import (
@@ -15,6 +17,7 @@ from academics.application.dto.school_grade_dto import (
     UpdateSchoolGradeCommand,
 )
 from academics.domain.exceptions.academics_exceptions import (
+    ClassRoomHistoryConflictError,
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
     GroupNotFoundError,
@@ -41,6 +44,11 @@ from academics.interfaces.http.school_grade_use_case_factory import (
     build_update_school_grade_use_case,
 )
 from elementary_back.middleware import IsAdmin
+from elementary_back.permissions import (
+    can_access_classroom,
+    is_admin_user,
+    is_teacher_user,
+)
 from staff.models import Staff
 
 from .models import ClassRoom, Enrollment, Group, SchoolGrade, Subject
@@ -52,6 +60,11 @@ from .serializer import (
     PromotionInputSerializer,
     PromotionOutputSerializer,
     SubjectSerializer,
+)
+
+
+HISTORY_PROTECTED_DETAIL = (
+    "No se puede eliminar este registro porque forma parte del historial académico."
 )
 
 
@@ -187,10 +200,14 @@ class GroupViewSet(APIView):
             delete_use_case.execute(str(pk))
         except GroupNotFoundError:
             return Response({"error": "Group not found"}, status=404)
+        except ProtectedError:
+            return Response({"detail": HISTORY_PROTECTED_DETAIL}, status=409)
         return Response(status=204)
 
 
 class SubjectViewSet(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, pk=None, class_id=None):
         if pk:
             try:
@@ -200,7 +217,15 @@ class SubjectViewSet(APIView):
             serializer = SubjectSerializer(subject)
             return Response(serializer.data)
         elif class_id:
-            classroom_group = ClassRoom.objects.get(pk=class_id).group
+            if not can_access_classroom(request.user, class_id):
+                return Response(
+                    {"detail": "You do not have access to this classroom."},
+                    status=403,
+                )
+            try:
+                classroom_group = ClassRoom.objects.get(pk=class_id).group
+            except ClassRoom.DoesNotExist:
+                return Response({"error": "ClassRoom not found"}, status=404)
             subjects = Subject.objects.filter(school_grade=classroom_group.school_grade)
             serializer = SubjectSerializer(subjects, many=True)
             return Response(serializer.data)
@@ -210,8 +235,11 @@ class SubjectViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        school_grade = SchoolGrade.objects.get(pk=request.data.get("school_grade"))
-        if not school_grade:
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can create subjects."}, status=403)
+        try:
+            school_grade = SchoolGrade.objects.get(pk=request.data.get("school_grade"))
+        except (SchoolGrade.DoesNotExist, ValueError):
             return Response({"error": "School Grade not found"}, status=404)
         data = Subject(
             name=request.data.get("name"),
@@ -225,6 +253,8 @@ class SubjectViewSet(APIView):
         return Response(serializer.errors, status=400)
 
     def put(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can update subjects."}, status=403)
         update_use_case = build_update_subject_use_case()
 
         try:
@@ -244,6 +274,8 @@ class SubjectViewSet(APIView):
         return Response(data)
 
     def patch(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can update subjects."}, status=403)
         update_use_case = build_update_subject_use_case()
 
         try:
@@ -263,11 +295,15 @@ class SubjectViewSet(APIView):
         return Response(data)
     
     def delete(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can delete subjects."}, status=403)
         delete_use_case = build_delete_subject_use_case()
         try:
             delete_use_case.execute(str(pk))
         except SubjectNotFoundError:
             return Response({"error": "Subject not found"}, status=404)
+        except ProtectedError:
+            return Response({"detail": HISTORY_PROTECTED_DETAIL}, status=409)
         return Response(status=204)
 
 
@@ -379,9 +415,16 @@ class EnrollmentViewSet(APIView):
 
 # ClassRoom ViewSet
 class ClassRoomViewSet(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, pk=None):
         staff = self.request.user
         if pk:
+            if not can_access_classroom(staff, pk):
+                return Response(
+                    {"detail": "You do not have access to this classroom."},
+                    status=403,
+                )
             try:
                 classroom = ClassRoom.objects.get(pk=pk)
             except ClassRoom.DoesNotExist:
@@ -389,9 +432,9 @@ class ClassRoomViewSet(APIView):
             serializer = ClassRoomSerializer(classroom)
             return Response(serializer.data)
         else:
-            if staff.role == "Admin" or staff.role == "Superuser":
+            if is_admin_user(staff):
                 classrooms = ClassRoom.objects.all()
-            elif staff.role == "Teacher":
+            elif is_teacher_user(staff):
                 classrooms = ClassRoom.objects.filter(staff=staff)
             else:
                 return Response(
@@ -403,8 +446,13 @@ class ClassRoomViewSet(APIView):
             return Response(serializer.data)
 
     def post(self, request):
-        group = Group.objects.get(pk=request.data.get("group_id"))
-        staff = Staff.objects.get(pk=request.data.get("staff_id"))
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can create classrooms."}, status=403)
+        try:
+            group = Group.objects.get(pk=request.data.get("group_id"))
+            staff = Staff.objects.get(pk=request.data.get("staff_id"))
+        except (Group.DoesNotExist, Staff.DoesNotExist, ValueError):
+            return Response({"error": "Group or staff not found"}, status=404)
         data = ClassRoom(
             group=group,
             staff=staff,
@@ -417,6 +465,8 @@ class ClassRoomViewSet(APIView):
         return Response(serializer.errors, status=400)
 
     def put(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can update classrooms."}, status=403)
         update_use_case = build_update_classroom_use_case()
 
         try:
@@ -432,20 +482,28 @@ class ClassRoomViewSet(APIView):
             data = update_use_case.execute(command)
         except ClassRoomNotFoundError:
             return Response({"error": "ClassRoom not found"}, status=404)
+        except ClassRoomHistoryConflictError as exc:
+            return Response({"detail": str(exc)}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
 
     def delete(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can delete classrooms."}, status=403)
         delete_use_case = build_delete_classroom_use_case()
 
         try:
             delete_use_case.execute(str(pk))
         except ClassRoomNotFoundError:
             return Response({"error": "ClassRoom not found"}, status=404)
+        except ProtectedError:
+            return Response({"detail": HISTORY_PROTECTED_DETAIL}, status=409)
         return Response(status=204)
 
     def patch(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can update classrooms."}, status=403)
         update_use_case = build_update_classroom_use_case()
 
         try:
@@ -461,6 +519,8 @@ class ClassRoomViewSet(APIView):
             data = update_use_case.execute(command)
         except ClassRoomNotFoundError:
             return Response({"error": "ClassRoom not found"}, status=404)
+        except ClassRoomHistoryConflictError as exc:
+            return Response({"detail": str(exc)}, status=409)
         except ValueError:
             return Response({"error": "Invalid request payload"}, status=400)
         return Response(data)
@@ -498,9 +558,14 @@ class PromotionView(APIView):
                 {"detail": f"No se pudo completar la promoción. Todos los cambios fueron revertidos. Razón: {e}"},
                 status=400,
             )
-        except Exception as e:
+        except Exception:
             return Response(
-                {"detail": f"No se pudo completar la promoción. Todos los cambios fueron revertidos. Razón: {e}"},
+                {
+                    "detail": (
+                        "No se pudo completar la promoción. Todos los cambios fueron "
+                        "revertidos debido a un error interno."
+                    )
+                },
                 status=500,
             )
 

@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from academics.application.dto.academics_dto import PromoteStudentsCommand
 from academics.domain.exceptions.academics_exceptions import PromotionError
@@ -6,8 +6,15 @@ from academics.domain.exceptions.academics_exceptions import PromotionError
 
 class ExecutePromotionUseCase:
     def execute(self, command: PromoteStudentsCommand) -> dict:
+        try:
+            return self._execute(command)
+        except IntegrityError as exc:
+            raise PromotionError(
+                "La promoción entra en conflicto con una inscripción o estructura académica existente."
+            ) from exc
+
+    def _execute(self, command: PromoteStudentsCommand) -> dict:
         from academics.models import ClassRoom, Enrollment, Group, SchoolGrade
-        from students.models import Student
 
         with transaction.atomic():
             try:
@@ -86,10 +93,8 @@ class ExecutePromotionUseCase:
                     student.save(update_fields=['state'])
                     counts['graduate'] += 1
 
-            if counts['repeat'] == 0:
-                source_classroom.delete()
-                source_group.delete()
-
+            # El aula y el grupo de origen son parte del historial académico y
+            # deben conservarse después de cerrar sus inscripciones activas.
             return {
                 'promoted': counts['promote'],
                 'repeated': counts['repeat'],

@@ -7,6 +7,7 @@ class Staff(AbstractUser):
 
     ROLE_CHOICES = [
             ('Admin','Admin'),
+            ('Principal','Principal'),
             ('Teacher','Teacher'),
         ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -15,7 +16,6 @@ class Staff(AbstractUser):
     last_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(max_length=150, blank=True)
     role = models.CharField(max_length=50,choices=ROLE_CHOICES,default='Teacher')
-    password_professor = models.CharField(max_length=128, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -28,8 +28,6 @@ class Staff(AbstractUser):
         return self.role == 'Admin'
     def is_teacher(self):
         return self.role == 'Teacher'
-
-
 
 
 

@@ -12,7 +12,11 @@ class StudentRepository(Protocol):
     def list_students_by_classroom(self, classroom_id: str) -> list[dict]:
         ...
     
-    def get_student_detail(self, student_id: str) -> dict | None:
+    def get_student_detail(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict | None:
         ...
 
     def create_student_with_enrollment(self, command: CreateStudentCommand) -> dict:
@@ -24,5 +28,9 @@ class StudentRepository(Protocol):
     def delete_student(self, student_id: str) -> None:
         ...
 
-    def get_student_profile(self, student_id: str) -> dict | None:
+    def get_student_profile(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict | None:
         ...

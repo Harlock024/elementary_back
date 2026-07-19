@@ -10,7 +10,7 @@ class GradingCriteria(models.Model):
     name = models.CharField(max_length=100)
     class_room = models.ForeignKey(
         ClassRoom,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='grading_criteria'
     )
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
@@ -31,22 +31,22 @@ class GradingCriteria(models.Model):
 class StudentGrade(models.Model):
     student = models.ForeignKey(
         Student,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='grades'
     )
     class_room = models.ForeignKey(
         ClassRoom,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='grades'
     )
     subject = models.ForeignKey(
         Subject,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='grades'
     )
     assignment = models.ForeignKey(
         'assignments.Assignment',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='grades'
     )
     score = models.DecimalField(max_digits=5, decimal_places=2)

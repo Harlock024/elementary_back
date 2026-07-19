@@ -14,12 +14,18 @@ class DjangoAssignmentRepository:
         self,
         class_id: str | None = None,
         student_id: str | None = None,
+        due_date=None,
+        classroom_ids: list[str] | None = None,
     ) -> list[dict]:
         qs = Assignment.objects.select_related("class_room", "subject", "grading_criteria")
         if class_id:
             qs = qs.filter(class_room_id=class_id)
         if student_id:
             qs = qs.filter(class_room__group__enrollments__student_id=student_id).distinct()
+        if due_date:
+            qs = qs.filter(due_date=due_date)
+        if classroom_ids is not None:
+            qs = qs.filter(class_room_id__in=classroom_ids)
         return [self._to_dict(a) for a in qs]
 
     def create_assignment(self, command: CreateAssignmentCommand) -> dict:

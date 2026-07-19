@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from academics.application.dto.academics_dto import (
     UpdateClassRoomCommand,
     UpdateEnrollmentCommand,
@@ -5,6 +7,7 @@ from academics.application.dto.academics_dto import (
     UpdateSubjectCommand,
 )
 from academics.domain.exceptions.academics_exceptions import (
+    ClassRoomHistoryConflictError,
     ClassRoomNotFoundError,
     EnrollmentNotFoundError,
     GroupNotFoundError,
@@ -99,10 +102,36 @@ class DjangoClassRoomRepository:
             return None
         return ClassRoomSerializer(classroom).data
 
+    @transaction.atomic
     def update_classroom(self, command: UpdateClassRoomCommand) -> dict:
-        classroom = ClassRoom.objects.filter(pk=command.classroom_id).first()
+        classroom = (
+            ClassRoom.objects.select_for_update()
+            .filter(pk=command.classroom_id)
+            .first()
+        )
         if classroom is None:
             raise ClassRoomNotFoundError("ClassRoom not found")
+
+        changes_group = (
+            command.group_id is not None
+            and str(command.group_id) != str(classroom.group_id)
+        )
+        changes_staff = (
+            command.staff_id is not None
+            and str(command.staff_id) != str(classroom.staff_id)
+        )
+        has_history = any(
+            (
+                classroom.attendances.exists(),
+                classroom.assignments.exists(),
+                classroom.grades.exists(),
+                classroom.grading_criteria.exists(),
+            )
+        )
+        if (changes_group or changes_staff) and has_history:
+            raise ClassRoomHistoryConflictError(
+                "No se puede reasignar un aula que contiene historial académico."
+            )
 
         if command.group_id is not None:
             group = Group.objects.filter(pk=command.group_id).first()
@@ -169,4 +198,5 @@ class DjangoEnrollmentRepository:
         enrollment = Enrollment.objects.filter(pk=enrollment_id).first()
         if enrollment is None:
             raise EnrollmentNotFoundError("Enrollment not found")
-        enrollment.delete()
+        enrollment.state = 'inactivo'
+        enrollment.save(update_fields=['state', 'updated_at'])

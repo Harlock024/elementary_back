@@ -5,17 +5,17 @@ class Assignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) 
     class_room = models.ForeignKey(
         'academics.ClassRoom',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='assignments'
     )
     subject = models.ForeignKey(
         'academics.Subject',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='assignments'
     )
     grading_criteria = models.ForeignKey(
         'grades.GradingCriteria',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='assignments'
     )
     title = models.CharField(max_length=255)
@@ -31,4 +31,3 @@ class Assignment(models.Model):
     def __str__(self):        
         return f"{self.title} - {self.class_room} - {self.subject}"
     
-

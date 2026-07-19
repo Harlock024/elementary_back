@@ -1,8 +1,23 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+from django.db.models.deletion import ProtectedError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from assignments.models import Assignment
+from grades.models import GradingCriteria
+
+from elementary_back.permissions import (
+    IsAdminOrTeacher,
+    classroom_id_for_assignment,
+    classroom_id_for_grade,
+    classroom_id_for_grading_criteria,
+    is_admin_user,
+    require_admin,
+    require_classroom_access,
+    require_student_classroom_access,
+)
 
 from grades.application.dto.grade_dto import CreateGradeCommand, UpdateGradeCommand
 from grades.application.dto.grading_criteria_dto import CreateGradingCriteriaCommand, UpdateGradingCriteriaCommand
@@ -30,14 +45,33 @@ from grades.interfaces.http.grading_criteria_use_case_factory import (
 )
 
 
+HISTORY_PROTECTED_DETAIL = (
+    "No se puede eliminar este criterio porque forma parte del historial académico."
+)
+
+
 class GradeViewSet(APIView):
+    permission_classes = [IsAdminOrTeacher]
+
     def get(self, request, class_room_id=None, pk=None):
         if pk:
+            classroom_id = classroom_id_for_grade(pk)
+            if classroom_id is None:
+                if not is_admin_user(request.user):
+                    require_admin(request.user)
+            else:
+                require_classroom_access(request.user, classroom_id)
             try:
                 grade = build_get_grade_use_case().execute(pk)
             except GradeNotFoundError:
                 return Response({"error": "Grade not found"}, status=404)
             return Response(grade)
+
+        if class_room_id:
+            require_classroom_access(request.user, class_room_id)
+        else:
+            require_admin(request.user)
+
         student_id = request.query_params.get('student')
         return Response(build_list_grades_use_case().execute(
             class_room_id=str(class_room_id) if class_room_id else None,
@@ -49,6 +83,32 @@ class GradeViewSet(APIView):
         for field in required_fields:
             if request.data.get(field) is None:
                 return Response({"error": f"{field} is required"}, status=400)
+
+        class_room_id = request.data.get("class_room")
+        require_classroom_access(request.user, class_room_id)
+        assignment_id = request.data.get("assignment")
+        assignment_classroom_id = classroom_id_for_assignment(assignment_id)
+        if assignment_classroom_id is None:
+            return Response({"error": "Assignment not found"}, status=400)
+        require_classroom_access(request.user, assignment_classroom_id)
+        assignment = Assignment.objects.filter(pk=assignment_id).first()
+        if assignment is None:
+            return Response({"error": "Assignment not found"}, status=400)
+        require_student_classroom_access(
+            request.user,
+            request.data.get("student"),
+            class_room_id,
+        )
+        if str(assignment.class_room_id) != str(class_room_id):
+            return Response(
+                {"error": "Assignment must belong to the selected classroom."},
+                status=400,
+            )
+        if str(assignment.subject_id) != str(request.data.get("subject")):
+            return Response(
+                {"error": "Subject must match the assignment subject."},
+                status=400,
+            )
 
         try:
             command = CreateGradeCommand(
@@ -77,6 +137,13 @@ class GradeViewSet(APIView):
         if pk is None:
             return Response({"error": "Grade ID is required"}, status=400)
 
+        classroom_id = classroom_id_for_grade(pk)
+        if classroom_id is None:
+            if not is_admin_user(request.user):
+                require_admin(request.user)
+        else:
+            require_classroom_access(request.user, classroom_id)
+
         try:
             score = request.data.get("score")
             command = UpdateGradeCommand(
@@ -92,6 +159,13 @@ class GradeViewSet(APIView):
         return Response(data)
 
     def delete(self, request, pk):
+        classroom_id = classroom_id_for_grade(pk)
+        if classroom_id is None:
+            if not is_admin_user(request.user):
+                require_admin(request.user)
+        else:
+            require_classroom_access(request.user, classroom_id)
+
         try:
             build_delete_grade_use_case().execute(pk)
         except GradeNotFoundError:
@@ -100,13 +174,27 @@ class GradeViewSet(APIView):
 
 
 class GradingCriteriaViewSet(APIView):
+    permission_classes = [IsAdminOrTeacher]
+
     def get(self, request, class_room_id=None, pk=None):
         if pk:
+            classroom_id = classroom_id_for_grading_criteria(pk)
+            if classroom_id is None:
+                if not is_admin_user(request.user):
+                    require_admin(request.user)
+            else:
+                require_classroom_access(request.user, classroom_id)
             try:
                 criteria = build_get_grading_criteria_use_case().execute(str(pk))
             except GradingCriteriaNotFoundError:
                 return Response({"error": "Grading criteria not found"}, status=404)
             return Response(criteria)
+
+        if class_room_id:
+            require_classroom_access(request.user, class_room_id)
+        else:
+            require_admin(request.user)
+
         return Response(build_list_grading_criteria_use_case().execute(
             class_room_id=str(class_room_id) if class_room_id else None
         ))
@@ -116,6 +204,8 @@ class GradingCriteriaViewSet(APIView):
         for field in required_fields:
             if request.data.get(field) is None:
                 return Response({"error": f"{field} is required"}, status=400)
+
+        require_classroom_access(request.user, request.data.get("class_room"))
 
         try:
             command = CreateGradingCriteriaCommand(
@@ -132,6 +222,30 @@ class GradingCriteriaViewSet(APIView):
     def put(self, request, pk=None):
         if pk is None:
             return Response({"error": "Grading criteria ID is required"}, status=400)
+
+        classroom_id = classroom_id_for_grading_criteria(pk)
+        if classroom_id is None:
+            if not is_admin_user(request.user):
+                require_admin(request.user)
+        else:
+            require_classroom_access(request.user, classroom_id)
+
+        target_classroom_id = request.data.get("class_room")
+        if target_classroom_id and str(target_classroom_id) != str(classroom_id):
+            require_classroom_access(request.user, target_classroom_id)
+            if not is_admin_user(request.user):
+                return Response(
+                    {"error": "Teachers cannot move grading criteria between classrooms."},
+                    status=400,
+                )
+            if GradingCriteria.objects.filter(
+                pk=pk,
+                assignments__isnull=False,
+            ).exists():
+                return Response(
+                    {"error": "Grading criteria in use cannot be moved to another classroom."},
+                    status=400,
+                )
 
         try:
             percentage = request.data.get("percentage")
@@ -152,8 +266,18 @@ class GradingCriteriaViewSet(APIView):
     def delete(self, request, pk=None):
         if pk is None:
             return Response({"error": "Grading criteria ID is required"}, status=400)
+
+        classroom_id = classroom_id_for_grading_criteria(pk)
+        if classroom_id is None:
+            if not is_admin_user(request.user):
+                require_admin(request.user)
+        else:
+            require_classroom_access(request.user, classroom_id)
+
         try:
             build_delete_grading_criteria_use_case().execute(str(pk))
         except GradingCriteriaNotFoundError:
             return Response({"error": "Grading criteria not found"}, status=404)
+        except ProtectedError:
+            return Response({"detail": HISTORY_PROTECTED_DETAIL}, status=409)
         return Response(status=204)

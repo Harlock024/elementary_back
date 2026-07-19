@@ -12,6 +12,8 @@ db.sqlite3
 *.pyd
 *.log
 .env
+.env.*
+!.env.example
 .vscode/
 .idea/
 *.sublime-workspace

@@ -2,6 +2,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 
 from academics.models import Enrollment, Group
+from grades.models import StudentGrade
 from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
 from students.domain.exceptions.student_exceptions import GroupNotFoundError, StudentNotFoundError
 from students.models import Student
@@ -14,18 +15,50 @@ class DjangoStudentRepository:
         return StudentDetailSerializer(students, many=True).data
 
     def list_students_by_group(self, group_id: str) -> list[dict]:
-        students = Student.objects.filter(enrollments__group__id=group_id, enrollments__state='activo')
+        students = Student.objects.filter(
+            enrollments__group__id=group_id,
+            enrollments__state='activo',
+        ).prefetch_related(
+            Prefetch(
+                'enrollments',
+                queryset=Enrollment.objects.filter(group_id=group_id),
+                to_attr='detail_enrollments',
+            )
+        )
         return StudentDetailSerializer(students, many=True).data
 
     def list_students_by_classroom(self, classroom_id: str) -> list[dict]:
         students = Student.objects.filter(
             enrollments__group__classes__id=classroom_id,
             enrollments__state='activo',
+        ).prefetch_related(
+            Prefetch(
+                'enrollments',
+                queryset=Enrollment.objects.filter(
+                    group__classes__id=classroom_id,
+                ).distinct(),
+                to_attr='detail_enrollments',
+            )
         ).distinct()
         return StudentDetailSerializer(students, many=True).data
     
-    def get_student_detail(self, student_id: str) -> dict | None:
-        student = Student.objects.filter(pk=student_id).first()
+    def get_student_detail(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict | None:
+        students = Student.objects.filter(pk=student_id)
+        if classroom_ids is not None:
+            students = students.prefetch_related(
+                Prefetch(
+                    'enrollments',
+                    queryset=Enrollment.objects.filter(
+                        group__classes__id__in=classroom_ids,
+                    ).distinct(),
+                    to_attr='detail_enrollments',
+                )
+            )
+        student = students.first()
         if student is None:
             return None
         return StudentDetailSerializer(student).data
@@ -123,15 +156,38 @@ class DjangoStudentRepository:
             raise StudentNotFoundError("Student not found")
         student.delete()
 
-    def get_student_profile(self, student_id: str) -> dict | None:
+    def get_student_profile(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict | None:
+        enrollments = Enrollment.objects.select_related(
+            'group__school_grade'
+        ).order_by('-created_at')
+        grades = StudentGrade.objects.select_related(
+            'assignment__subject',
+            'class_room',
+        )
+
+        if classroom_ids is not None:
+            enrollments = enrollments.filter(
+                group__classes__id__in=classroom_ids,
+            ).distinct()
+            grades = grades.filter(class_room_id__in=classroom_ids)
+
         student = (
             Student.objects
             .prefetch_related(
                 Prefetch(
                     'enrollments',
-                    queryset=Enrollment.objects.select_related('group__school_grade').order_by('-created_at'),
+                    queryset=enrollments,
+                    to_attr='profile_enrollments',
                 ),
-                'grades__assignment__subject',
+                Prefetch(
+                    'grades',
+                    queryset=grades,
+                    to_attr='profile_grades',
+                ),
             )
             .filter(pk=student_id)
             .first()

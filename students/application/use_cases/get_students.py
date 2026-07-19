@@ -29,8 +29,18 @@ class GetStudentDetailUseCase:
     def __init__(self, repository: StudentRepository):
         self.repository = repository
 
-    def execute(self, student_id: str) -> dict:
-        student = self.repository.get_student_detail(student_id)
+    def execute(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict:
+        if classroom_ids is None:
+            student = self.repository.get_student_detail(student_id)
+        else:
+            student = self.repository.get_student_detail(
+                student_id,
+                classroom_ids=classroom_ids,
+            )
         if student is None:
             raise StudentNotFoundError("Student not found")
         return student
@@ -40,8 +50,18 @@ class GetStudentProfileUseCase:
     def __init__(self, repository: StudentRepository):
         self.repository = repository
 
-    def execute(self, student_id: str) -> dict:
-        student = self.repository.get_student_profile(student_id)
+    def execute(
+        self,
+        student_id: str,
+        classroom_ids: list[str] | None = None,
+    ) -> dict:
+        if classroom_ids is None:
+            student = self.repository.get_student_profile(student_id)
+        else:
+            student = self.repository.get_student_profile(
+                student_id,
+                classroom_ids=classroom_ids,
+            )
         if student is None:
             raise StudentNotFoundError("Student not found")
         return student
