@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -51,8 +52,9 @@ from elementary_back.permissions import (
 )
 from staff.models import Staff
 
-from .models import ClassRoom, Enrollment, Group, SchoolGrade, Subject
+from .models import AcademicPeriod, ClassRoom, Enrollment, Group, SchoolGrade, Subject
 from .serializer import (
+    AcademicPeriodSerializer,
     ClassRoomSerializer,
     EnrollmentSerializer,
     GroupDetailSerializer,
@@ -66,6 +68,93 @@ from .serializer import (
 HISTORY_PROTECTED_DETAIL = (
     "No se puede eliminar este registro porque forma parte del historial académico."
 )
+
+
+def _requested_period(request):
+    period_value = request.query_params.get("academic_period", "active")
+    query = {"status": AcademicPeriod.Status.ACTIVE} if period_value == "active" else {"pk": period_value}
+    try:
+        return AcademicPeriod.objects.get(**query)
+    except (AcademicPeriod.DoesNotExist, ValueError):
+        return None
+
+
+class AcademicPeriodViewSet(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk=None):
+        periods = AcademicPeriod.objects.all()
+        if not is_admin_user(request.user):
+            if not is_teacher_user(request.user):
+                return Response({"detail": "You do not have permission to access this resource."}, status=403)
+            periods = periods.filter(classrooms__staff=request.user).distinct()
+        if pk:
+            period = periods.filter(pk=pk).first()
+            if period is None:
+                return Response({"error": "Academic period not found"}, status=404)
+            return Response(AcademicPeriodSerializer(period).data)
+        return Response(AcademicPeriodSerializer(periods, many=True).data)
+
+    def post(self, request):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can create academic periods."}, status=403)
+        payload = request.data.copy()
+        payload["status"] = AcademicPeriod.Status.DRAFT
+        serializer = AcademicPeriodSerializer(data=payload)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+            except IntegrityError:
+                return Response({"detail": "The academic period conflicts with an existing period."}, status=409)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def patch(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can update academic periods."}, status=403)
+        with transaction.atomic():
+            period = AcademicPeriod.objects.select_for_update().filter(pk=pk).first()
+            if period is None:
+                return Response({"error": "Academic period not found"}, status=404)
+            if period.status == AcademicPeriod.Status.CLOSED:
+                return Response({"detail": "A closed academic period is immutable."}, status=409)
+
+            requested_status = request.data.get("status", period.status)
+            if requested_status != period.status:
+                if period.status == AcademicPeriod.Status.DRAFT and requested_status == AcademicPeriod.Status.ACTIVE:
+                    if AcademicPeriod.objects.select_for_update().filter(status=AcademicPeriod.Status.ACTIVE).exclude(pk=pk).exists():
+                        return Response({"detail": "There is already an active academic period."}, status=409)
+                elif period.status == AcademicPeriod.Status.ACTIVE and requested_status == AcademicPeriod.Status.CLOSED:
+                    if period.enrollments.filter(state__in=("activo", "active")).exists():
+                        return Response({"detail": "The period still has active enrollments."}, status=409)
+                else:
+                    return Response({"detail": "Invalid academic period transition."}, status=409)
+
+            payload = request.data.copy()
+            if period.status != AcademicPeriod.Status.DRAFT:
+                for field in ("name", "start_date", "end_date"):
+                    payload.pop(field, None)
+            serializer = AcademicPeriodSerializer(period, data=payload, partial=True)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
+            try:
+                serializer.save()
+            except IntegrityError:
+                return Response({"detail": "The academic period conflicts with an existing period."}, status=409)
+            return Response(serializer.data)
+
+    def delete(self, request, pk):
+        if not is_admin_user(request.user):
+            return Response({"detail": "Only administrators can delete academic periods."}, status=403)
+        period = AcademicPeriod.objects.filter(pk=pk).first()
+        if period is None:
+            return Response({"error": "Academic period not found"}, status=404)
+        if period.status != AcademicPeriod.Status.DRAFT:
+            return Response({"detail": "Only empty draft periods can be deleted."}, status=409)
+        if period.classrooms.exists() or period.enrollments.exists():
+            return Response({"detail": "The academic period contains history and cannot be deleted."}, status=409)
+        period.delete()
+        return Response(status=204)
 
 
 class SchoolGradeViewSet(APIView):
@@ -141,7 +230,11 @@ class GroupViewSet(APIView):
             return Response(serializer.data)
         else:
             groups = Group.objects.all()
-            serializer = GroupDetailSerializer(groups, many=True)
+            serializer = GroupDetailSerializer(
+                groups,
+                many=True,
+                context={"academic_period_id": request.query_params.get("academic_period")},
+            )
             return Response(serializer.data)
 
     def post(self, request):
@@ -326,8 +419,12 @@ class EnrollmentViewSet(APIView):
         elif request.query_params.get('group'):
             enrollments = Enrollment.objects.filter(
                 group_id=request.query_params['group'],
-                state='activo',
+                state__in=('activo', 'active'),
             )
+            if request.query_params.get('academic_period'):
+                enrollments = enrollments.filter(
+                    academic_period_id=request.query_params['academic_period']
+                )
             serializer = EnrollmentSerializer(enrollments, many=True)
             return Response(serializer.data)
         elif  staff.role == "Superuser" or staff.role == "Principal":
@@ -335,7 +432,7 @@ class EnrollmentViewSet(APIView):
             serializer = EnrollmentSerializer(enrollments, many=True)
             return Response(serializer.data)
         elif staff.role == "Admin":
-            enrollments = Enrollment.objects.filter(state="activo")
+            enrollments = Enrollment.objects.filter(state__in=("activo", "active"))
             serializer = EnrollmentSerializer(enrollments, many=True)   
             return Response(serializer.data)
         else:
@@ -345,13 +442,26 @@ class EnrollmentViewSet(APIView):
             )
 
     def post(self, request):
-        group = Group.objects.get(pk=request.data.get("group"))
-        if not group:
+        try:
+            group = Group.objects.get(pk=request.data.get("group"))
+        except (Group.DoesNotExist, ValueError):
             return Response({"error": "Group not found"}, status=404)
+        period_value = request.data.get("academic_period") or request.data.get("academic_period_id")
+        try:
+            academic_period = (
+                AcademicPeriod.objects.get(pk=period_value)
+                if period_value
+                else AcademicPeriod.objects.get(name=request.data.get("period"))
+            )
+        except (AcademicPeriod.DoesNotExist, ValueError):
+            return Response({"error": "Academic period not found"}, status=404)
+        if academic_period.status == AcademicPeriod.Status.CLOSED:
+            return Response({"detail": "The academic period is closed."}, status=409)
         data = Enrollment(
             student_id=request.data.get("student"),
             group=group,
-            period=request.data.get("period"),
+            period=academic_period.name,
+            academic_period=academic_period,
             state=request.data.get("state"),
         )
         serializer = EnrollmentSerializer(data, data=request.data)
@@ -373,6 +483,8 @@ class EnrollmentViewSet(APIView):
                 if request.data.get("group")
                 else None,
                 period=request.data.get("period"),
+                academic_period_id=str(request.data.get("academic_period") or request.data.get("academic_period_id"))
+                if request.data.get("academic_period") or request.data.get("academic_period_id") else None,
                 state=request.data.get("state"),
             )
             data = update_use_case.execute(command)
@@ -395,6 +507,8 @@ class EnrollmentViewSet(APIView):
                 if request.data.get("group")
                 else None,
                 period=request.data.get("period"),
+                academic_period_id=str(request.data.get("academic_period") or request.data.get("academic_period_id"))
+                if request.data.get("academic_period") or request.data.get("academic_period_id") else None,
                 state=request.data.get("state"),
             )
             data = update_use_case.execute(command)
@@ -432,10 +546,16 @@ class ClassRoomViewSet(APIView):
             serializer = ClassRoomSerializer(classroom)
             return Response(serializer.data)
         else:
+            academic_period = _requested_period(request)
+            if academic_period is None:
+                return Response({"error": "Academic period not found"}, status=404)
             if is_admin_user(staff):
-                classrooms = ClassRoom.objects.all()
+                classrooms = ClassRoom.objects.filter(academic_period=academic_period)
             elif is_teacher_user(staff):
-                classrooms = ClassRoom.objects.filter(staff=staff)
+                classrooms = ClassRoom.objects.filter(
+                    staff=staff,
+                    academic_period=academic_period,
+                )
             else:
                 return Response(
                     {"detail": "You do not have permission to access this resource."},
@@ -451,11 +571,15 @@ class ClassRoomViewSet(APIView):
         try:
             group = Group.objects.get(pk=request.data.get("group_id"))
             staff = Staff.objects.get(pk=request.data.get("staff_id"))
-        except (Group.DoesNotExist, Staff.DoesNotExist, ValueError):
-            return Response({"error": "Group or staff not found"}, status=404)
+            academic_period = AcademicPeriod.objects.get(pk=request.data.get("academic_period_id"))
+        except (Group.DoesNotExist, Staff.DoesNotExist, AcademicPeriod.DoesNotExist, ValueError):
+            return Response({"error": "Group, staff, or academic period not found"}, status=404)
+        if academic_period.status == AcademicPeriod.Status.CLOSED:
+            return Response({"detail": "The academic period is closed."}, status=409)
         data = ClassRoom(
             group=group,
             staff=staff,
+            academic_period=academic_period,
         )
 
         serializer = ClassRoomSerializer(data, data=request.data)
@@ -467,6 +591,9 @@ class ClassRoomViewSet(APIView):
     def put(self, request, pk):
         if not is_admin_user(request.user):
             return Response({"detail": "Only administrators can update classrooms."}, status=403)
+        classroom = ClassRoom.objects.select_related('academic_period').filter(pk=pk).first()
+        if classroom and classroom.academic_period.status == AcademicPeriod.Status.CLOSED:
+            return Response({"detail": "The academic period is closed."}, status=409)
         update_use_case = build_update_classroom_use_case()
 
         try:
@@ -491,6 +618,9 @@ class ClassRoomViewSet(APIView):
     def delete(self, request, pk):
         if not is_admin_user(request.user):
             return Response({"detail": "Only administrators can delete classrooms."}, status=403)
+        classroom = ClassRoom.objects.select_related('academic_period').filter(pk=pk).first()
+        if classroom and classroom.academic_period.status == AcademicPeriod.Status.CLOSED:
+            return Response({"detail": "The academic period is closed."}, status=409)
         delete_use_case = build_delete_classroom_use_case()
 
         try:
@@ -504,6 +634,9 @@ class ClassRoomViewSet(APIView):
     def patch(self, request, pk):
         if not is_admin_user(request.user):
             return Response({"detail": "Only administrators can update classrooms."}, status=403)
+        classroom = ClassRoom.objects.select_related('academic_period').filter(pk=pk).first()
+        if classroom and classroom.academic_period.status == AcademicPeriod.Status.CLOSED:
+            return Response({"detail": "The academic period is closed."}, status=409)
         update_use_case = build_update_classroom_use_case()
 
         try:
@@ -539,7 +672,8 @@ class PromotionView(APIView):
 
         command = PromoteStudentsCommand(
             source_classroom_id=str(data['source_classroom_id']),
-            period=data['period'],
+            target_period_id=str(data['target_period_id']) if data.get('target_period_id') else None,
+            period=data.get('period'),
             students=[
                 StudentActionItem(student_id=str(s['student_id']), action=s['action'])
                 for s in data['students']

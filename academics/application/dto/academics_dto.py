@@ -17,9 +17,10 @@ class TargetGroupData:
 @dataclass(frozen=True)
 class PromoteStudentsCommand:
     source_classroom_id: str
-    period: str
     students: list[StudentActionItem]
     target_group: Optional[TargetGroupData] = None
+    target_period_id: Optional[str] = None
+    period: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -49,4 +50,5 @@ class UpdateEnrollmentCommand:
     student_id: Optional[str] = None
     group_id: Optional[str] = None
     period: Optional[str] = None
+    academic_period_id: Optional[str] = None
     state: Optional[str] = None

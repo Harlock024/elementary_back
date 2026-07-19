@@ -4,11 +4,19 @@ from collections.abc import Iterable
 from typing import Any
 
 from django.core.exceptions import ValidationError
+from django.db.models import F
+from rest_framework.exceptions import APIException
 from rest_framework.exceptions import PermissionDenied, ValidationError as APIValidationError
 from rest_framework.permissions import BasePermission
 
 
 ADMIN_ROLES = frozenset({"Admin", "Superuser", "Principal"})
+
+
+class AcademicPeriodClosed(APIException):
+    status_code = 409
+    default_detail = "The academic period is closed and is read-only."
+    default_code = "academic_period_closed"
 
 
 def _is_authenticated(user: Any) -> bool:
@@ -80,7 +88,8 @@ def can_access_student_classrooms(user: Any, student_id: Any) -> bool:
         return ClassRoom.objects.filter(
             staff_id=user.pk,
             group__enrollments__student_id=student_id,
-            group__enrollments__state="activo",
+            group__enrollments__state__in=("activo", "active"),
+            group__enrollments__academic_period_id=F("academic_period_id"),
         ).exists()
     except (TypeError, ValueError, ValidationError):
         return False
@@ -97,7 +106,8 @@ def student_is_enrolled_in_classroom(student_id: Any, classroom_id: Any) -> bool
         return Enrollment.objects.filter(
             student_id=student_id,
             group__classes__id=classroom_id,
-            state="activo",
+            academic_period_id=F("group__classes__academic_period_id"),
+            state__in=("activo", "active"),
         ).exists()
     except (TypeError, ValueError, ValidationError):
         return False
@@ -114,7 +124,8 @@ def classroom_ids_for_active_student(student_id: Any) -> list[Any]:
         return list(
             ClassRoom.objects.filter(
                 group__enrollments__student_id=student_id,
-                group__enrollments__state="activo",
+                group__enrollments__state__in=("activo", "active"),
+                group__enrollments__academic_period_id=F("academic_period_id"),
             )
             .values_list("id", flat=True)
             .distinct()
@@ -175,6 +186,16 @@ def require_admin(user: Any) -> None:
 def require_classroom_access(user: Any, classroom_id: Any) -> None:
     if not can_access_classroom(user, classroom_id):
         raise PermissionDenied("You do not have access to this classroom.")
+
+
+def require_open_classroom(classroom_id: Any) -> None:
+    from academics.models import AcademicPeriod, ClassRoom
+
+    if ClassRoom.objects.filter(
+        pk=classroom_id,
+        academic_period__status=AcademicPeriod.Status.CLOSED,
+    ).exists():
+        raise AcademicPeriodClosed()
 
 
 def require_student_classroom_access(

@@ -13,6 +13,7 @@ from elementary_back.permissions import (
     is_admin_user,
     require_admin,
     require_classroom_access,
+    require_open_classroom,
     require_student_classroom_access,
 )
 from attendance.application.dto.attendance_dto import (
@@ -71,6 +72,7 @@ class AttendaceView(APIView):
             return Response({"error": "Class ID is required"}, status=400)
 
         require_classroom_access(request.user, class_id)
+        require_open_classroom(class_id)
 
         student_id = request.data.get("student")
         state_code_id = request.data.get("state_code")
@@ -115,6 +117,7 @@ class AttendaceView(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         update_use_case = build_update_attendance_use_case()
         try:

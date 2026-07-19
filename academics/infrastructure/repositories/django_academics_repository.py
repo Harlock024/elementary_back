@@ -173,30 +173,48 @@ class DjangoEnrollmentRepository:
         return EnrollmentSerializer(enrollment).data
 
     def update_enrollment(self, command: UpdateEnrollmentCommand) -> dict:
-        enrollment = Enrollment.objects.filter(pk=command.enrollment_id).first()
-        if enrollment is None:
-            raise EnrollmentNotFoundError("Enrollment not found")
+        from django.db import transaction
+        from academics.models import AcademicPeriod
 
-        if command.student_id is not None:
-            from students.models import Student
-            student = Student.objects.filter(pk=command.student_id).first()
-            if student:
-                enrollment.student = student
-        if command.group_id is not None:
-            group = Group.objects.filter(pk=command.group_id).first()
-            if group:
-                enrollment.group = group
-        if command.period is not None:
-            enrollment.period = command.period
-        if command.state is not None:
-            enrollment.state = command.state
+        with transaction.atomic():
+            enrollment = Enrollment.objects.select_for_update().select_related(
+                "academic_period"
+            ).filter(pk=command.enrollment_id).first()
+            if enrollment is None:
+                raise EnrollmentNotFoundError("Enrollment not found")
+            if enrollment.academic_period.status == AcademicPeriod.Status.CLOSED:
+                raise ValueError("The academic period is closed")
+            if command.student_id is not None:
+                from students.models import Student
+                student = Student.objects.filter(pk=command.student_id).first()
+                if student:
+                    enrollment.student = student
+            if command.group_id is not None:
+                group = Group.objects.filter(pk=command.group_id).first()
+                if group:
+                    enrollment.group = group
+            if command.academic_period_id is not None or command.period is not None:
+                lookup = (
+                    {"pk": command.academic_period_id}
+                    if command.academic_period_id is not None
+                    else {"name": command.period}
+                )
+                target_period = AcademicPeriod.objects.select_for_update().filter(**lookup).first()
+                if target_period is None or target_period.status == AcademicPeriod.Status.CLOSED:
+                    raise ValueError("Academic period not found or closed")
+                enrollment.academic_period = target_period
+                enrollment.period = target_period.name
+            if command.state is not None:
+                enrollment.state = command.state
 
-        enrollment.save()
+            enrollment.save()
         return EnrollmentSerializer(enrollment).data
     
     def delete_enrollment(self, enrollment_id: str) -> None:
-        enrollment = Enrollment.objects.filter(pk=enrollment_id).first()
+        enrollment = Enrollment.objects.select_related("academic_period").filter(pk=enrollment_id).first()
         if enrollment is None:
             raise EnrollmentNotFoundError("Enrollment not found")
+        if enrollment.academic_period.status == "closed":
+            raise ValueError("The academic period is closed")
         enrollment.state = 'inactivo'
         enrollment.save(update_fields=['state', 'updated_at'])

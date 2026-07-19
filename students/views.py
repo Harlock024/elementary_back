@@ -93,11 +93,12 @@ class StudentViewSet(APIView):
 
         group_id = request.data.get("group_id")
         period = request.data.get("period")
+        academic_period_id = request.data.get("academic_period_id") or request.data.get("academic_period")
         birth_date = request.data.get("date_of_birth")
 
         required = {
             "group_id": group_id,
-            "period": period,
+            "period": period or academic_period_id,
             "date_of_birth": birth_date,
             "curp": request.data.get("curp"),
             "tutor_name": request.data.get("tutor_name"),
@@ -122,6 +123,7 @@ class StudentViewSet(APIView):
                 state=request.data.get("state"),
                 group_id=str(group_id),
                 period=period,
+                academic_period_id=str(academic_period_id) if academic_period_id else None,
             )
             return Response(build_create_student_use_case().execute(command), status=201)
         except ValueError:
@@ -149,6 +151,8 @@ class StudentViewSet(APIView):
                 state=request.data.get("state"),
                 group_id=request.data.get("group_id"),
                 period=request.data.get("period"),
+                academic_period_id=str(request.data.get("academic_period_id") or request.data.get("academic_period"))
+                if request.data.get("academic_period_id") or request.data.get("academic_period") else None,
             )
             return Response(build_update_student_use_case().execute(command))
         except StudentNotFoundError:

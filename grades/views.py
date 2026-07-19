@@ -16,6 +16,7 @@ from elementary_back.permissions import (
     is_admin_user,
     require_admin,
     require_classroom_access,
+    require_open_classroom,
     require_student_classroom_access,
 )
 
@@ -86,6 +87,7 @@ class GradeViewSet(APIView):
 
         class_room_id = request.data.get("class_room")
         require_classroom_access(request.user, class_room_id)
+        require_open_classroom(class_room_id)
         assignment_id = request.data.get("assignment")
         assignment_classroom_id = classroom_id_for_assignment(assignment_id)
         if assignment_classroom_id is None:
@@ -143,6 +145,7 @@ class GradeViewSet(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         try:
             score = request.data.get("score")
@@ -165,6 +168,7 @@ class GradeViewSet(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         try:
             build_delete_grade_use_case().execute(pk)
@@ -206,6 +210,7 @@ class GradingCriteriaViewSet(APIView):
                 return Response({"error": f"{field} is required"}, status=400)
 
         require_classroom_access(request.user, request.data.get("class_room"))
+        require_open_classroom(request.data.get("class_room"))
 
         try:
             command = CreateGradingCriteriaCommand(
@@ -229,6 +234,7 @@ class GradingCriteriaViewSet(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         target_classroom_id = request.data.get("class_room")
         if target_classroom_id and str(target_classroom_id) != str(classroom_id):
@@ -273,6 +279,7 @@ class GradingCriteriaViewSet(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         try:
             build_delete_grading_criteria_use_case().execute(str(pk))

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    AcademicPeriodViewSet,
     ClassRoomViewSet,
     EnrollmentViewSet,
     GroupViewSet,
@@ -10,6 +11,8 @@ from .views import (
 )
 
 urlpatterns = [
+    path("periods/", AcademicPeriodViewSet.as_view(), name="academic-period-list"),
+    path("periods/<uuid:pk>/", AcademicPeriodViewSet.as_view(), name="academic-period-detail"),
     # SchoolGrade endpoints
     path("school-grades/", SchoolGradeViewSet.as_view(), name="school-grade-list"),
     path( "school-grades/<uuid:pk>/",SchoolGradeViewSet.as_view(),name="school-grade-detail"),

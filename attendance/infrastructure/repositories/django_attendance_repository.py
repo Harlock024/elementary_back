@@ -1,3 +1,5 @@
+from django.db import IntegrityError, transaction
+
 from attendance.application.dto.attendance_dto import CreateAttendanceCommand, UpdateAttendanceCommand
 from attendance.domain.exceptions.attendance_exceptions import (
     AttendanceAlreadyExistsError,
@@ -27,7 +29,8 @@ class DjangoAttendanceRepository:
                 return []
             students = Student.objects.filter(
                 enrollments__group=classroom.group,
-                enrollments__state='activo',
+                enrollments__academic_period_id=classroom.academic_period_id,
+                enrollments__state__in=('activo', 'active'),
             ).distinct()
             result = []
             for student in students:
@@ -51,36 +54,36 @@ class DjangoAttendanceRepository:
         return AttendanceSerializer(attendance, many=True).data
 
     def create_attendance(self, command: CreateAttendanceCommand) -> dict:
-        existing = Attendance.objects.filter(
-            date=command.attendance_date,
-            student_id=command.student_id,
-        )
-        if existing.exists():
-            raise AttendanceAlreadyExistsError(
-                "Attendance for this student in this class already exists."
-            )
-
-        student = Student.objects.filter(id=command.student_id).first()
-        if student is None:
-            raise StudentNotFoundForAttendanceError("Student does not exist.")
-
-        state_code = CatalogTypeAtendance.objects.filter(id=command.state_code_id).first()
-        if state_code is None:
-            raise StateCodeNotFoundError("State code does not exist.")
-
-        class_room = ClassRoom.objects.filter(id=command.class_id).first()
-        if class_room is None:
-            raise ClassRoomNotFoundError("Class room does not exist.")
-
-        attendance = Attendance(
-            class_room=class_room,
-            student=student,
-            date=command.attendance_date,
-            state_code=state_code,
-        )
         try:
-            attendance.save()
-        except Exception:
+            with transaction.atomic():
+                class_room = ClassRoom.objects.select_for_update().select_related(
+                    "academic_period"
+                ).filter(id=command.class_id).first()
+                if class_room is None:
+                    raise ClassRoomNotFoundError("Class room does not exist.")
+                if class_room.academic_period.status == "closed":
+                    raise ValueError("The academic period is closed")
+                if not class_room.academic_period.start_date <= command.attendance_date <= class_room.academic_period.end_date:
+                    raise ValueError("Attendance date is outside the academic period")
+                student = Student.objects.select_for_update().filter(id=command.student_id).first()
+                if student is None:
+                    raise StudentNotFoundForAttendanceError("Student does not exist.")
+                if not student.enrollments.filter(
+                    group_id=class_room.group_id,
+                    academic_period_id=class_room.academic_period_id,
+                    state__in=("activo", "active"),
+                ).exists():
+                    raise StudentNotFoundForAttendanceError("Student is not enrolled in this classroom period.")
+                state_code = CatalogTypeAtendance.objects.filter(id=command.state_code_id).first()
+                if state_code is None:
+                    raise StateCodeNotFoundError("State code does not exist.")
+                attendance = Attendance.objects.create(
+                    class_room=class_room,
+                    student=student,
+                    date=command.attendance_date,
+                    state_code=state_code,
+                )
+        except IntegrityError:
             raise AttendanceAlreadyExistsError(
                 "Attendance for this student in this class already exists."
             )
@@ -89,9 +92,11 @@ class DjangoAttendanceRepository:
         return serializer.data
 
     def update_attendance(self, command: UpdateAttendanceCommand) -> dict:
-        attendance = Attendance.objects.filter(pk=command.attendance_id).first()
+        attendance = Attendance.objects.select_related("class_room__academic_period").filter(pk=command.attendance_id).first()
         if attendance is None:
             raise AttendanceNotFoundError("Attendance record not found")
+        if attendance.class_room.academic_period.status == "closed":
+            raise ValueError("The academic period is closed")
 
         if command.state_code_id is not None:
             state_code = CatalogTypeAtendance.objects.filter(id=command.state_code_id).first()

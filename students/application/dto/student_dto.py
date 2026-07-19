@@ -17,6 +17,7 @@ class CreateStudentCommand:
     state: str
     group_id: str
     period: str
+    academic_period_id: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -34,3 +35,4 @@ class UpdateStudentCommand:
     state: Optional[str] = None
     group_id: Optional[str] = None
     period: Optional[str] = None
+    academic_period_id: Optional[str] = None

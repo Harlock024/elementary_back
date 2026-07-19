@@ -237,7 +237,7 @@ class AcademicsEndpointsSmokeTests(TestCase):
 	def test_update_enrollment_endpoint_returns_200(self):
 		response = self.client.put(
 			f"/api/academics/enrollments/{self.enrollment.id}/",
-			{"state": "inactive", "period": "2027"},
+			{"state": "inactive", "period": self.enrollment.academic_period.name},
 			format="json",
 		)
 

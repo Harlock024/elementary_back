@@ -1,7 +1,7 @@
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import F, Prefetch
 
-from academics.models import Enrollment, Group
+from academics.models import AcademicPeriod, Enrollment, Group
 from grades.models import StudentGrade
 from students.application.dto.student_dto import CreateStudentCommand, UpdateStudentCommand
 from students.domain.exceptions.student_exceptions import GroupNotFoundError, StudentNotFoundError
@@ -17,7 +17,7 @@ class DjangoStudentRepository:
     def list_students_by_group(self, group_id: str) -> list[dict]:
         students = Student.objects.filter(
             enrollments__group__id=group_id,
-            enrollments__state='activo',
+            enrollments__state__in=('activo', 'active'),
         ).prefetch_related(
             Prefetch(
                 'enrollments',
@@ -30,12 +30,14 @@ class DjangoStudentRepository:
     def list_students_by_classroom(self, classroom_id: str) -> list[dict]:
         students = Student.objects.filter(
             enrollments__group__classes__id=classroom_id,
-            enrollments__state='activo',
+            enrollments__academic_period_id=F("enrollments__group__classes__academic_period_id"),
+            enrollments__state__in=('activo', 'active'),
         ).prefetch_related(
             Prefetch(
                 'enrollments',
                 queryset=Enrollment.objects.filter(
                     group__classes__id=classroom_id,
+                    academic_period_id=F("group__classes__academic_period_id"),
                 ).distinct(),
                 to_attr='detail_enrollments',
             )
@@ -67,6 +69,12 @@ class DjangoStudentRepository:
         group = Group.objects.filter(pk=command.group_id).first()
         if group is None:
             raise GroupNotFoundError("Group not found")
+        lookup = {"pk": command.academic_period_id} if command.academic_period_id else {"name": command.period}
+        academic_period = AcademicPeriod.objects.filter(**lookup).first()
+        if academic_period is None and not command.academic_period_id and AcademicPeriod.objects.count() == 1:
+            academic_period = AcademicPeriod.objects.first()
+        if academic_period is None or academic_period.status == AcademicPeriod.Status.CLOSED:
+            raise ValueError("Academic period not found or closed")
 
         with transaction.atomic():
             student = Student(
@@ -87,7 +95,8 @@ class DjangoStudentRepository:
             enrollment = Enrollment(
                 student=student,
                 group=group,
-                period=command.period,
+                period=academic_period.name,
+                academic_period=academic_period,
                 state=command.state,
             )
             enrollment.save()
@@ -129,23 +138,31 @@ class DjangoStudentRepository:
                     raise GroupNotFoundError("Group not found")
 
                 active_enrollment = Enrollment.objects.filter(
-                    student=student, state='activo'
+                    student=student, state__in=('activo', 'active')
                 ).select_related('group').first()
 
-                period = command.period or (active_enrollment.period if active_enrollment else None)
-                if period is None:
+                period_name = command.period or (active_enrollment.period if active_enrollment else None)
+                if command.academic_period_id:
+                    academic_period = AcademicPeriod.objects.filter(pk=command.academic_period_id).first()
+                elif command.period:
+                    academic_period = AcademicPeriod.objects.filter(name=command.period).first()
+                else:
+                    academic_period = active_enrollment.academic_period if active_enrollment else None
+                if academic_period is None or period_name is None:
                     raise ValueError("period is required when changing group")
+                if academic_period.status == AcademicPeriod.Status.CLOSED:
+                    raise ValueError("Academic period is closed")
 
                 if active_enrollment and str(active_enrollment.group_id) != str(group.id):
                     Enrollment.objects.filter(
-                        student=student, state='activo'
+                        student=student, state__in=('activo', 'active')
                     ).update(state='inactivo')
 
-                Enrollment.objects.get_or_create(
+                Enrollment.objects.update_or_create(
                     student=student,
                     group=group,
-                    period=period,
-                    defaults={'state': 'activo'},
+                    academic_period=academic_period,
+                    defaults={'state': 'activo', 'period': academic_period.name},
                 )
 
         return StudentSerializer(student).data

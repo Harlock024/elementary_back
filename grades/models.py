@@ -57,6 +57,12 @@ class StudentGrade(models.Model):
 
     class Meta:
         db_table = "student_grades"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "assignment"],
+                name="uniq_student_assignment_grade",
+            ),
+        ]
         indexes = [
             models.Index(fields=['assignment'], name='sg_assignment_idx'),
         ]

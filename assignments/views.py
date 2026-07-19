@@ -14,6 +14,7 @@ from elementary_back.permissions import (
     is_admin_user,
     require_admin,
     require_classroom_access,
+    require_open_classroom,
 )
 from grades.models import GradingCriteria
 
@@ -79,7 +80,7 @@ class AssignmentView(APIView):
                     for classroom_id in ClassRoom.objects.filter(
                         staff=request.user,
                         group__enrollments__student_id=student_id,
-                        group__enrollments__state="activo",
+                        group__enrollments__state__in=("activo", "active"),
                     ).values_list("id", flat=True).distinct()
                 ]
         else:
@@ -100,6 +101,7 @@ class AssignmentView(APIView):
             return Response({"error": "Class ID is required"}, status=400)
 
         require_classroom_access(request.user, class_id)
+        require_open_classroom(class_id)
 
         subject_id = request.data.get("subject_id")
         grading_criteria_id = request.data.get("grading_criteria_id")
@@ -168,6 +170,7 @@ class AssignmentView(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         try:
             build_delete_assignment_use_case().execute(str(id))
@@ -187,6 +190,7 @@ class AssignmentView(APIView):
                 require_admin(request.user)
         else:
             require_classroom_access(request.user, classroom_id)
+            require_open_classroom(classroom_id)
 
         subject_id = request.data.get("subject_id")
         grading_criteria_id = request.data.get("grading_criteria_id")

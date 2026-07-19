@@ -9,7 +9,7 @@ from academics.application.dto.academics_dto import (
 )
 from academics.application.use_cases.execute_promotion import ExecutePromotionUseCase
 from academics.domain.exceptions.academics_exceptions import PromotionError
-from academics.models import ClassRoom, Enrollment, Group, SchoolGrade, Subject
+from academics.models import AcademicPeriod, ClassRoom, Enrollment, Group, SchoolGrade, Subject
 from assignments.models import Assignment
 from attendance.models import Attendance, CatalogTypeAtendance
 from grades.models import GradingCriteria, StudentGrade
@@ -19,6 +19,17 @@ from students.models import Student
 
 class ExecutePromotionHistoryTests(TestCase):
     def setUp(self):
+        self.source_period = AcademicPeriod.objects.get(status="active")
+        self.source_period.name = "2025-2026"
+        self.source_period.start_date = date(2025, 8, 1)
+        self.source_period.end_date = date(2026, 7, 31)
+        self.source_period.save()
+        self.target_period = AcademicPeriod.objects.create(
+            name="2026-2027",
+            start_date=date(2026, 8, 1),
+            end_date=date(2027, 7, 31),
+            status="draft",
+        )
         self.teacher = Staff.objects.create_user(
             username="history-teacher",
             password="pass1234",
@@ -52,7 +63,7 @@ class ExecutePromotionHistoryTests(TestCase):
     def _promotion_command(self, *students: Student) -> PromoteStudentsCommand:
         return PromoteStudentsCommand(
             source_classroom_id=str(self.source_classroom.id),
-            period="2026-2027",
+            target_period_id=str(self.target_period.id),
             students=[
                 StudentActionItem(student_id=str(student.id), action="promote")
                 for student in students
@@ -151,6 +162,7 @@ class ExecutePromotionHistoryTests(TestCase):
             student=second_student,
             group=target_group,
             period="2026-2027",
+            academic_period=self.target_period,
             state="inactivo",
         )
 
